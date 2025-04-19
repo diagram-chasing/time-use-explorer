@@ -1,0 +1,137 @@
+@import 'tailwindcss';
+@import './styles/fonts.css';
+
+body {
+    font-family: 'JetBrains Mono Variable', monospace;
+    line-height: 1.5;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background-color: #FCFCFA;
+    color: #121212;
+}
+
+@theme {
+    /* Typography */
+    --font-mono: 'JetBrains Mono Variable', monospace;
+    
+    --color-yellow: #FFD100;
+    --color-orange: #FF5F00;
+    --color-blue: #005AFF;
+    --color-green: #008751;
+    --color-sage: #667867;
+    --color-red: #E20613;
+    --color-purple: #6439FF;
+    --color-neutral: #121212;
+    --color-base-100: #FCFCFA;
+    --color-base-200: #EFEFE9;
+    --color-base-300: #7F7F7F;
+    
+    /* Shadows and Elements */
+    --shadow-btn-drop-shadow: 0 1px 0 0 #121212;
+}
+
+@layer utilities {
+    .btn-drop-shadow {
+      box-shadow: 0 1px 0 0 #121212; 
+    }
+    
+    .grid-lines {
+      background-image: linear-gradient(to right, rgba(18, 18, 18, 0.05) 1px, transparent 1px),
+                        linear-gradient(to bottom, rgba(18, 18, 18, 0.05) 1px, transparent 1px);
+      background-size: 16px 16px;
+    }
+}
+
+html, body {
+    background-image: linear-gradient(to right, rgba(18, 18, 18, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(18, 18, 18, 0.04) 1px, transparent 1px);
+    background-size: 16px 16px;
+}
+
+.divide {
+    @apply border-base-300 border-t-[1px] w-full z-0;
+}
+
+h1, h2, h3 {
+    font-family: 'JetBrains Mono Variable', monospace;
+    letter-spacing: -0.02em;
+    @apply font-bold text-neutral leading-tight;
+}
+
+a:focus {
+    @apply rounded-none outline-solid outline-1 outline-offset-2 outline-neutral;
+}
+
+html {
+    background-color: #FCFCFA;
+}
+
+/* Buttons */
+.btn-primary {
+    @apply flex items-center justify-center gap-2 px-3 py-1.5 text-sm font-bold tracking-tight text-white uppercase border border-neutral rounded-none w-fit font-mono bg-neutral;
+    box-shadow: 0 1px 0 0 #121212;
+    transition: all 150ms ease-out;
+}
+
+.btn-primary:hover,
+.btn-primary:focus {
+    @apply bg-blue border-blue text-white;
+    transform: translateY(-1px);
+}
+
+.btn-primary:active {
+    transform: translateY(0);
+    transition: transform 34ms;
+}
+
+.btn-primary:focus {
+    @apply outline-solid outline-1 outline-offset-2 outline-neutral; 
+}
+
+/* Table styles */
+.data-table {
+    @apply border-collapse w-full;
+}
+
+.data-table thead th {
+    @apply text-xs uppercase font-bold py-2 px-3 text-left border-b border-neutral sticky top-0 bg-base-100;
+}
+
+.data-table tbody td {
+    @apply text-xs py-2 px-3 border-b border-neutral/10;
+}
+
+.data-table tbody tr:hover {
+    @apply bg-base-200;
+}
+
+/* Number formatting */
+.tabular-nums {
+    font-feature-settings: "tnum";
+    font-variant-numeric: tabular-nums;
+}
+
+/* Controls and inputs */
+.control-input {
+    @apply border border-neutral bg-base-100 px-2 py-1 text-xs w-full font-mono focus:border-blue focus:outline-none transition-colors;
+}
+
+.control-label {
+    @apply text-xs uppercase font-bold text-base-300 mb-1;
+}
+
+.control-group {
+    @apply mb-3;
+}
+
+/* Form elements */
+select, input[type="text"], input[type="number"] {
+    @apply rounded-none border border-neutral bg-base-100;
+}
+
+/* Reduced animation for better performance */
+.fade-quick {
+    transition: opacity 150ms ease-out;
+}
+

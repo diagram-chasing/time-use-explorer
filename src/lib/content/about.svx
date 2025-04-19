@@ -1,0 +1,136 @@
+---
+layout: AboutLayout
+---
+
+<script>
+import Card from '$lib/components/Card.svelte';
+import AggregatePicture from '$lib/assets/aggregate.png?url';
+import FilterPicture from '$lib/assets/filter.png?url';
+import DownloadPicture from '$lib/assets/download.png?url';
+import TimeAnalysisPicture from '$lib/assets/time.png?url';
+const cards = [
+  {
+    image: AggregatePicture,
+    title: "Group and aggregate variables",
+    description: "Combine powerful aggregation functions with category grouping to generate meaningful summaries within specific segments"
+  },
+  {
+    image: FilterPicture,
+    title: "Filter variables by value",
+    description: "Apply precise filters for specific values or custom ranges when summarizing data. Combine multiple filters to focus on what you want"
+  },
+  {
+    image: DownloadPicture,
+    title: "Download Exports",
+    description: "Export all queries and summary results as CSV files for further analysis and visualization"
+  },
+  {
+    image: TimeAnalysisPicture,
+    title: "Time analysis queries",
+    description: "Use the 'Time' variables to analyze activities within specific time ranges and discover patterns across different groups"
+  }
+];
+</script>
+
+<div class="about-container">
+  <div class="left-column">
+    <h2>About the Data</h2>
+    <p>
+    The Time Use Survey (TUS) 2024 is India's second national survey measuring how people allocate their time across different activities. Conducted by the National Statistics Office between January-December 2024, it provides data on both paid and unpaid activities performed by Indians.
+    <br/>
+    <br/>
+    The survey covered 139,487 households (83,247 rural and 56,240 urban) and collected information from 454,192 individuals aged 6 and above. Data was gathered through computer-assisted personal interviews, with participants reporting their activities in 30-minute slots over a 24-hour period (from 4 AM to 4 AM).
+    </p>
+
+    <ul class="list-disc">
+    <li> <a href="https://pib.gov.in/PressReleasePage.aspx?PRID=2106113">PIB press release on TUS 2024</a></li>
+    <li> <a href="https://www.mospi.gov.in/sites/default/files/publication_reports/Report%20of%20the%20Time%20Use%20Survey-Final.pdf">MoSPI report, TUS 2024</a></li>
+    </ul>
+    
+    <h2>About the Explorer</h2>
+    <p>
+     <a href="https://github.com/Vonter/india-timeuse-survey">While we provide the original, full data in a structured format</a>, this explorer lets you run powerful SQL queries on key variables and makes it easy to query this large amount of data in your browser for easier access. You can filter on variables, aggregate and summarize within groups, and export these summaries in CSV format for further analysis and visualization. 
+    </p>
+    
+      <h2>Caveats</h2>
+    <p>
+     The explorer only gives access to a specific selection of columns from the dataset. We derive variables such as 'average time' which are not in the original dataset. While the original survey covers 454,192 individuals, of those approximately 90k records contain demographic but no time-use information and are therefore excluded in this dataset. <a href="https://fas.org.in/using-the-india-tus-unit-level-data-some-notes-on-method-and-some-stata-code/">This is within the margin for previous surveys too.</a>
+    </p>
+    <h2>Technical</h2>
+    <p>
+     This was made with Sveltekit and DuckDB WASM. All processing happens locally, in-browser and no data is sent anywhere. Data is stored in and parsed from parquet formats for a highly efficient storage size. 
+    Code is available on <a href="https://github.com/diagram-chasing/time-use-explorer">our Github repository</a>. Any issues and bugs should also be reported there.
+     </p>
+    
+    
+  </div>
+  
+  <div class="right-column">
+    <div class="bento-grid">
+      {#each cards as card}
+        <Card image={card.image}>
+          <h3>{card.title}</h3>
+          <p>{card.description}</p>
+        </Card>
+      {/each}
+    </div>
+    
+    
+  </div>
+</div>
+
+<style>
+  .about-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+  }
+  
+  h1 {
+    margin-top: 0;
+    padding-top: 0;
+  }
+
+  
+  h2 {
+    margin-top: 0.75rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  h2:not(:first-child) {
+    margin-top: 1.5rem;
+  }
+
+
+  
+  h3 {
+    margin: 0 0 0.5rem 0;
+    font-size: 0.9rem;
+  }
+  
+  p {
+    margin-bottom: 0.75rem;
+  }
+  
+  
+
+
+ 
+  @media (max-width: 768px) {
+    .about-container {
+      grid-template-columns: 1fr;
+      gap: 0.75rem;
+    }
+    
+    .feature-cards, .benefits-grid {
+      margin-top: 0.5rem;
+    }
+  }
+  @media (min-width: 769px) {
+    .left-column {
+     max-width: 520px;
+    }
+  }
+
+
+</style> 
