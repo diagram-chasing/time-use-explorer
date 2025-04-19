@@ -58,7 +58,7 @@ const cards = [
     </p>
     <h2>Technical</h2>
     <p>
-     This was made with Sveltekit and DuckDB WASM. All processing happens locally, in-browser and no data is sent anywhere. Data is stored in and parsed from parquet formats for a highly efficient storage size. 
+     This was made with Sveltekit and DuckDB WASM. All processing happens locally, in-browser. Data is stored in and parsed from parquet formats for a highly efficient storage size. 
     Code is available on <a href="https://github.com/diagram-chasing/time-use-explorer">our Github repository</a>. Any issues and bugs should also be reported there.
      </p>
     
