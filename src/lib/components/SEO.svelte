@@ -3,16 +3,14 @@
     export let title = 'India Time Use Survey Explorer | Diagram Chasing';
     export let description = 'Explore, subset and summarize the India Time Use Survey data in your browser';
     export let keywords = 'india time use survey, diagram chasing, data visualization, social science, india';
-    export let image = '/sharecard.jpg';
     export let url = '';
-    export let siteUrl = 'https://india-time-use-explorer.netlify.app'; // Add default production URL
+    export let siteUrl = 'https://india-time-use-explorer.netlify.app'; 
     
   
     import { page } from '$app/stores';
     
     // Calculate the absolute URL for images - ensuring no double slashes or periods
     $: isPrerendering = $page.url.origin.includes('sveltekit-prerender');
-    $: absoluteUrl = isPrerendering ? siteUrl : $page.url.origin;
     $: canonicalUrl = url || (isPrerendering ? `${siteUrl}${$page.url.pathname}` : $page.url.href);
   </script>
   

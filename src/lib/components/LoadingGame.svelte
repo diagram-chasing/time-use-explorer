@@ -394,7 +394,7 @@
     }
   });
   let width = 500;
-$: CANVAS_WIDTH = width * 0.5;
+$: CANVAS_WIDTH = width < 768 ? width * 0.8 : width * 0.5;
 </script>
 
 <div class="p-2 game-container {!show ? 'hidden' : ''}" bind:clientWidth={width}>
