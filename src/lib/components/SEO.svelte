@@ -13,9 +13,6 @@
     // Calculate the absolute URL for images - ensuring no double slashes or periods
     $: isPrerendering = $page.url.origin.includes('sveltekit-prerender');
     $: absoluteUrl = isPrerendering ? siteUrl : $page.url.origin;
-    $: fullImageUrl = image.startsWith('http') 
-      ? image 
-      : `${absoluteUrl}${image.startsWith('/') ? '' : '/'}${image}`;
     $: canonicalUrl = url || (isPrerendering ? `${siteUrl}${$page.url.pathname}` : $page.url.href);
   </script>
   
@@ -32,14 +29,14 @@
     <meta property="og:url" content={canonicalUrl} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
-    <meta property="og:image" content={fullImageUrl} />
+    <meta property="og:image" content="https://india-time-use-explorer.netlify.app/sharecard.jpg" />
     
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image" />
     <meta property="twitter:url" content={canonicalUrl} />
     <meta property="twitter:title" content={title} />
     <meta property="twitter:description" content={description} />
-    <meta property="twitter:image" content={fullImageUrl} />
+    <meta property="twitter:image" content="https://india-time-use-explorer.netlify.app/sharecard.jpg" />
     
     <!-- Additional Meta Tags -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
