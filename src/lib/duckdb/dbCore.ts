@@ -460,7 +460,15 @@ export const dbCore = {
 };
 
 function createCrossOriginWorker(workerUrl: string, options?: WorkerOptions): Worker {
-  // Create a blob with a module import statement
+  // In development mode, use the worker directly without the blob URL approach
+  const isDev = import.meta.env?.DEV === true || import.meta.env?.MODE === 'development';
+  
+  if (isDev) {
+    console.log('Development mode detected, using worker URL directly:', workerUrl);
+    return new Worker(workerUrl, { type: "module", name: options?.name });
+  }
+  
+  // Production mode: Create a blob with a module import statement
   const js = `import ${JSON.stringify(new URL(workerUrl, import.meta.url))}`;
   const blob = new Blob([js], { type: "application/javascript" });
   
