@@ -395,6 +395,13 @@ async function loadFullDatasetInBackground(duckdbInstance: AsyncDuckDB): Promise
               // Use notification utility instead of direct event dispatch
               if (browser) {
                 notifications.datasetLoaded('full');
+                
+                // Explicitly dispatch custom event for components waiting for the full dataset
+                window.dispatchEvent(new CustomEvent('full_dataset_loaded', {
+                  detail: { datasetVersion: 'full' }
+                }));
+                
+                console.log('Dispatched full_dataset_loaded event');
               }
             });
           } catch (e) {

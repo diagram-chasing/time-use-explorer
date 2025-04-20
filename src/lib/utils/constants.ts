@@ -68,6 +68,11 @@ export const defaultGroupByColumns: string[] = [];
 export const DEFAULT_PAGE_SIZE = 100;
 export const DEFAULT_CURRENT_PAGE = 1;
 
+// Feature flags
+export const FEATURES = {
+  ENABLE_URL_STATE: true // Set to true to enable query state in URL
+};
+
 
 
 

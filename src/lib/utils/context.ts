@@ -12,6 +12,7 @@ import {
   defaultGroupByColumns,
   DEFAULT_PAGE_SIZE,
   DEFAULT_CURRENT_PAGE,
+  FEATURES,
 } from './constants';
 import { createColumnTypesMap } from './dataUtils';
 import { runQuery, runSummaryQuery, runTimeAnalysis } from './queryUtils';
@@ -20,6 +21,7 @@ import { sortTimeResults } from './dataUtils';
 import { initDuckDB } from '../duckdb/service';
 import { browser } from '$app/environment';
 import { notifications } from './notificationUtils';
+import { updateURL } from './urlStateUtils';
 
 // Track last query notification to prevent duplicates
 let lastQueryNotification = {
@@ -162,6 +164,8 @@ export function createAppContext() {
     summaryMode.set(mode === VIEW_MODES.SUMMARY);
     timeAnalysisMode.set(mode === VIEW_MODES.TIME_ANALYSIS);
     
+    // Note: URL updates removed - now handled manually through Copy URL button
+    
     // Run the appropriate query when switching modes
     if (mode === VIEW_MODES.RAW_DATA) {
       executeRawDataQuery();
@@ -209,6 +213,9 @@ export function createAppContext() {
       if (count > 0) {
         throttledQueryNotification(count, 'raw');
       }
+
+      // Note: We removed URL state updates from here to only update when user
+      // explicitly requests via the Copy URL button
     } catch (err) {
       console.error('Error executing query:', err);
       const errorMessage = err instanceof Error ? err.message : String(err);
@@ -254,6 +261,9 @@ export function createAppContext() {
       if (summaryResultsValue.length > 0) {
         throttledQueryNotification(summaryResultsValue.length, 'summary');
       }
+
+      // Note: We removed URL state updates from here to only update when user
+      // explicitly requests via the Copy URL button
     } catch (err) {
       console.error('Error executing summary query:', err);
       const errorMessage = err instanceof Error ? err.message : String(err);
@@ -308,6 +318,9 @@ export function createAppContext() {
       if (timeAnalysisResultsValue.length > 0) {
         throttledQueryNotification(timeAnalysisResultsValue.length, 'time analysis');
       }
+
+      // Note: We removed URL state updates from here to only update when user
+      // explicitly requests via the Copy URL button
     } catch (err) {
       console.error('Error executing time analysis:', err);
       const errorMessage = err instanceof Error ? err.message : String(err);
@@ -370,6 +383,10 @@ export function createAppContext() {
     if (newPage < 1 || newPage > totalPagesValue) return;
     
     currentPage.set(newPage);
+    
+    // Note: We removed URL state updates from here to only update when user
+    // explicitly requests via the Copy URL button
+    
     executeRawDataQuery();
   }
 

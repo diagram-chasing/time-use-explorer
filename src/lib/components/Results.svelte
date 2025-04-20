@@ -9,7 +9,9 @@
   import VisualizationPanel from './VisualizationPanel.svelte';
   import { formatNumber } from '$lib/utils/formatUtils';
   import { getAppContext } from '$lib/utils/context';
-  import { VIEW_MODES, allColumns } from '$lib/utils/constants';
+  import { VIEW_MODES, allColumns, FEATURES } from '$lib/utils/constants';
+  import { notifications } from '$lib/utils/notificationUtils';
+  import { page } from '$app/stores';
   
   // Get the app context directly
   const {
@@ -26,6 +28,12 @@
     timeAnalysisResults,
     sortColumn,
     sortDirection,
+    filters,
+    selectedColumns,
+    demographicColumns,
+    activityColumn,
+    aggregations, 
+    groupByColumns,
     
     downloadRawData,
     downloadSummaryData,
@@ -39,9 +47,17 @@
   $: rawDataMode = $viewMode === VIEW_MODES.RAW_DATA;
   
   let usingCachedData = false;
+  let loadingFromUrl = false;
+  
+  // Check if we're loading from a URL
+  $: loadingMessage = loadingFromUrl 
+    ? 'Executing query from URL...' 
+    : (usingCachedData 
+      ? 'Loading from cache...' 
+      : 'Loading data...');
   
   // Update loading message based on cache state
-  $: loadingMessage = usingCachedData 
+  $: baseLoadingMessage = usingCachedData 
     ? 'Loading from cache...' 
     : ($dbReady ? 'Loading results...' : 'Initializing database... This may take a moment');
     
@@ -56,21 +72,38 @@
           ? `Showing ${formatNumber($summaryResults.length, { type: 'standard', decimals: 0 })} summary rows. `
           : `Showing ${formatNumber(($currentPage - 1) * $pageSize + 1, { type: 'standard', decimals: 0 })}-${formatNumber(Math.min($currentPage * $pageSize, $resultCount), { type: 'standard', decimals: 0 })} of ${formatNumber($resultCount, { type: 'standard', decimals: 0 })} matching rows. `;
             
-  // Add handler for the cached data event
+  // Add handlers for data events
   function onCachedDataLoaded(event: Event) {
     usingCachedData = true;
     setTimeout(() => {
       usingCachedData = false;
     }, 2000); // Reset after 2 seconds
   }
+
+  function onUrlQueryDetected(event: Event) {
+    loadingFromUrl = true;
+  }
+  
+  function onUrlQueryCompleted(event: Event) {
+    loadingFromUrl = false;
+  }
   
   // Subscribe to custom events
   onMount(() => {
     if (browser) {
       window.addEventListener('cached_data_loaded', onCachedDataLoaded);
+      window.addEventListener('url_query_processing', onUrlQueryDetected);
+      window.addEventListener('url_query_completed', onUrlQueryCompleted);
+      
+      // Check if URL has query parameters on load
+      if (FEATURES.ENABLE_URL_STATE && $page.url.searchParams.has('viewMode')) {
+        loadingFromUrl = true;
+      }
       
       return () => {
         window.removeEventListener('cached_data_loaded', onCachedDataLoaded);
+        window.removeEventListener('url_query_processing', onUrlQueryDetected);
+        window.removeEventListener('url_query_completed', onUrlQueryCompleted);
       };
     }
   });
@@ -245,14 +278,55 @@
         </p>
       </div>
       <div>
-        <ActionButton
-          onClick={downloadAction}
-          loading={$loading}
-          disabled={!resultsExist || $loading}
-          icon="download"
-          label="Download CSV"
-          variant="secondary"
-        />
+        <div class="flex gap-1">
+          <ActionButton
+            onClick={downloadAction}
+            loading={$loading}
+            disabled={!resultsExist || $loading}
+            icon="download"
+            label="Download CSV"
+            variant="secondary"
+          />
+          
+          {#if resultsExist && FEATURES.ENABLE_URL_STATE}
+            <ActionButton
+              onClick={() => {
+                import('$lib/utils/urlStateUtils').then(module => {
+                  const { serializeStateToURL } = module;
+                  
+                  // Get current state from context
+                  const currentState = {
+                    viewMode: $viewMode,
+                    filters: $filters || [],
+                    selectedColumns: $selectedColumns || [],
+                    currentPage: $currentPage,
+                    demographicColumns: $demographicColumns || [],
+                    activityColumn: $activityColumn,
+                    aggregations: $aggregations || [],
+                    groupByColumns: $groupByColumns || []
+                  };
+                  
+                  // Create URL with state
+                  const urlParams = serializeStateToURL(currentState);
+                  const url = `${window.location.origin}${window.location.pathname}?${urlParams}`;
+                  
+                  // Copy to clipboard
+                  navigator.clipboard.writeText(url)
+                    .then(() => {
+                      notifications.success('URL copied to clipboard');
+                    })
+                    .catch(err => {
+                      console.error('Failed to copy URL:', err);
+                      notifications.error('Failed to copy URL');
+                    });
+                });
+              }}
+              icon="search"
+              label="Copy URL"
+              variant="secondary"
+            />
+          {/if}
+        </div>
       </div>
     </div>
     
@@ -274,6 +348,7 @@
           columns={currentColumns}
           rows={currentResults}
           loading={$loading}
+          loadingMessage={loadingMessage}
           emptyMessage={emptyMessage}
           sortColumn={$sortColumn}
           sortDirection={$sortDirection}

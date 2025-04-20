@@ -5,20 +5,150 @@
 	import { Toaster, toast } from 'svelte-sonner';
 	import DiagramChasingLogo from '$lib/assets/dc-logo-no-text.png';
 	import Logo from '$lib/assets/logo.webp';
-	import { VIEW_MODES } from '$lib/utils/constants';
+	import { VIEW_MODES, FEATURES } from '$lib/utils/constants';
   import { onMount } from 'svelte';
   import { browser } from '$app/environment';
   import { setAppContext } from '$lib/utils/context';
   import { NotificationType, type NotificationData, notifications } from '$lib/utils/notificationUtils';
+  import { page } from '$app/stores';
+  import { parseStateFromURL } from '$lib/utils/urlStateUtils';
+  import { get } from 'svelte/store';
   
   // Set up the context for all children components to use
   const context = setAppContext();
   const { viewMode, setViewMode } = context;
   
+  // Handle URL state processing after DB is ready
+  async function processUrlState() {
+    if (!browser || !FEATURES.ENABLE_URL_STATE) return;
+    
+    const urlState = parseStateFromURL($page.url.searchParams);
+    
+    // Skip if no view mode in URL
+    if (!urlState.viewMode) return;
+    
+    try {
+      // Dispatch event that URL query processing has started
+      window.dispatchEvent(new CustomEvent('url_query_processing'));
+      
+      // Apply URL state if present - first set all state values
+      // Set view mode first, but don't trigger queries yet
+      context.viewMode.set(urlState.viewMode);
+      context.summaryMode.set(urlState.viewMode === VIEW_MODES.SUMMARY);
+      context.timeAnalysisMode.set(urlState.viewMode === VIEW_MODES.TIME_ANALYSIS);
+      
+      // Apply additional state if present (specific to each view mode)
+      if (urlState.filters && urlState.filters.length > 0) {
+        context.filters.set(urlState.filters);
+      }
+      
+      if (urlState.selectedColumns && urlState.selectedColumns.length > 0) {
+        context.selectedColumns.set(urlState.selectedColumns);
+      }
+      
+      if (urlState.currentPage && urlState.currentPage > 1) {
+        context.currentPage.set(urlState.currentPage);
+      }
+      
+      if (urlState.demographicColumns && urlState.demographicColumns.length > 0) {
+        context.demographicColumns.set(urlState.demographicColumns);
+      }
+      
+      if (urlState.activityColumn) {
+        context.activityColumn.set(urlState.activityColumn);
+      }
+      
+      if (urlState.aggregations && urlState.aggregations.length > 0) {
+        context.aggregations.set(urlState.aggregations);
+      }
+      
+      if (urlState.groupByColumns && urlState.groupByColumns.length > 0) {
+        context.groupByColumns.set(urlState.groupByColumns);
+      }
+      
+      console.log("Executing query from URL state...");
+      // Now execute the appropriate query after all state is set
+      if (urlState.viewMode === VIEW_MODES.RAW_DATA) {
+        await context.executeRawDataQuery();
+      } else if (urlState.viewMode === VIEW_MODES.SUMMARY) {
+        await context.executeSummaryQuery();
+      } else if (urlState.viewMode === VIEW_MODES.TIME_ANALYSIS) {
+        await context.executeTimeAnalysis();
+      }
+      
+      // Show success message after query is executed
+      if (pendingUrlToast) {
+        notifications.success("Shared query loaded successfully!");
+        pendingUrlToast = false;
+      }
+      
+      // Dispatch event that URL query processing has completed
+      window.dispatchEvent(new CustomEvent('url_query_completed'));
+    } catch (err) {
+      console.error('Error processing URL state:', err);
+      notifications.error(`Error loading query from URL: ${err}`);
+      
+      if (pendingUrlToast) {
+        pendingUrlToast = false;
+      }
+      
+      // Dispatch event that URL query processing has completed (even if with error)
+      window.dispatchEvent(new CustomEvent('url_query_completed'));
+    }
+  }
+  
+  // Flag to track if URL has been processed
+  let urlProcessed = false;
+  let pendingUrlToast = false;
+  
   // Initialize DuckDB when the component mounts
   onMount(async () => {
     if (browser) {
-      await context.initializeDuckDB();
+      try {
+        // Check if we have URL state that will need processing
+        if (FEATURES.ENABLE_URL_STATE) {
+          const urlState = parseStateFromURL($page.url.searchParams);
+          if (urlState.viewMode) {
+            // Show loading toast since we have URL state to process
+            notifications.info("Query from URL detected - waiting for dataset to load...");
+            pendingUrlToast = true;
+          }
+        }
+        
+        // Initialize database first but don't wait for full dataset to load
+        await context.initializeDuckDB();
+        
+        // Set up a listener for the full dataset loaded event
+        // This is better than using dbReady because we need the full dataset to be available
+        const onFullDatasetLoaded = (event: CustomEvent) => {
+          console.log("Full dataset loaded, now processing URL state");
+          if (!urlProcessed) {
+            if (pendingUrlToast) {
+              notifications.info("Dataset loaded - executing saved query...");
+            }
+            processUrlState();
+            urlProcessed = true;
+          }
+        };
+        
+        // Check if already loaded
+        if (get(context.dbReady)) {
+          // Even if dbReady is true, we need to make sure the full dataset is loaded
+          // So let's check if there was already a full_dataset_loaded event
+          // If not, we'll wait for it
+          setTimeout(() => {
+            if (!urlProcessed) {
+              console.log("DB is ready but waiting for full dataset");
+              window.addEventListener('full_dataset_loaded', onFullDatasetLoaded);
+            }
+          }, 100);
+        } else {
+          // DB not ready yet, add a listener for the full dataset loaded event
+          window.addEventListener('full_dataset_loaded', onFullDatasetLoaded);
+        }
+      } catch (err) {
+        console.error('Error initializing:', err);
+      }
       
       // Set up a global error handler
       window.addEventListener('error', (event) => {
