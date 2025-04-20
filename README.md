@@ -9,7 +9,7 @@ The data comes from the pre-processed datasets by Vonter, [available here](https
 ## Read more
 
 - [PIB press release on TUS 2024](https://pib.gov.in/PressReleasePage.aspx?PRID=2106113)
-- [MoSPI report, TUS 2024](https://www.mospi.gov.in/sites/default/files/publication_reports/Report%20of%20the%20Time%20Use%20Survey-Final.pdf)
+- [MoSPI report, TUS 2024](https://www.mospi.gov.in/sites/default/files/publication_reports/TUS_Factsheet_25022025.pdf)
 - [Original dataset in structured format](https://github.com/Vonter/india-timeuse-survey)
 
 ## AI Declaration

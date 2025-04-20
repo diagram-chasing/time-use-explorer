@@ -44,7 +44,7 @@ const cards = [
 
     <ul class="list-disc">
     <li> <a href="https://pib.gov.in/PressReleasePage.aspx?PRID=2106113">PIB press release on TUS 2024</a></li>
-    <li> <a href="https://www.mospi.gov.in/sites/default/files/publication_reports/Report%20of%20the%20Time%20Use%20Survey-Final.pdf">MoSPI report, TUS 2024</a></li>
+    <li> <a href="https://www.mospi.gov.in/sites/default/files/publication_reports/TUS_Factsheet_25022025.pdf">MoSPI report, TUS 2024</a></li>
     </ul>
     
     <h2>About the Explorer</h2>
