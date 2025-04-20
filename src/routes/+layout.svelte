@@ -28,9 +28,6 @@
     if (!urlState.viewMode) return;
     
     try {
-      // Dispatch event that URL query processing has started
-      window.dispatchEvent(new CustomEvent('url_query_processing'));
-      
       // Apply URL state if present - first set all state values
       // Set view mode first, but don't trigger queries yet
       context.viewMode.set(urlState.viewMode);
@@ -81,9 +78,6 @@
         notifications.success("Shared query loaded successfully!");
         pendingUrlToast = false;
       }
-      
-      // Dispatch event that URL query processing has completed
-      window.dispatchEvent(new CustomEvent('url_query_completed'));
     } catch (err) {
       console.error('Error processing URL state:', err);
       notifications.error(`Error loading query from URL: ${err}`);
@@ -91,9 +85,6 @@
       if (pendingUrlToast) {
         pendingUrlToast = false;
       }
-      
-      // Dispatch event that URL query processing has completed (even if with error)
-      window.dispatchEvent(new CustomEvent('url_query_completed'));
     }
   }
   

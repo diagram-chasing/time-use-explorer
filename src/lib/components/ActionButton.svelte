@@ -1,21 +1,22 @@
 <script lang="ts">
-  import { Search, Download, BarChart, Clock } from 'lucide-svelte';
+  import { Search, Download, BarChart, Clock, Link } from 'lucide-svelte';
   
   export let label: string;
-  export let icon: 'search' | 'download' | 'chart' | 'clock';
+  export let icon: 'search' | 'download' | 'chart' | 'clock' | 'link' = 'search';
   export let onClick: () => void;
   export let disabled: boolean = false;
   export let loading: boolean = false;
   export let variant: 'primary' | 'secondary' = 'primary';
   
   // Determine the icon component to use
-  let IconComponent: typeof Search | typeof Download | typeof BarChart | typeof Clock;
+  let IconComponent: typeof Search | typeof Download | typeof BarChart | typeof Clock | typeof Link;
   
   $: {
     if (icon === 'search') IconComponent = Search;
     else if (icon === 'download') IconComponent = Download;
     else if (icon === 'chart') IconComponent = BarChart;
     else if (icon === 'clock') IconComponent = Clock;
+    else if (icon === 'link') IconComponent = Link;
   }
   
   // Determine the classes to use

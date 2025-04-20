@@ -313,7 +313,7 @@
                   // Copy to clipboard
                   navigator.clipboard.writeText(url)
                     .then(() => {
-                      notifications.success('URL copied to clipboard');
+                      notifications.success('URL to this data view copied to clipboard');
                     })
                     .catch(err => {
                       console.error('Failed to copy URL:', err);
@@ -321,8 +321,8 @@
                     });
                 });
               }}
-              icon="search"
-              label="Copy URL"
+              icon="link"
+              label="Share"
               variant="secondary"
             />
           {/if}

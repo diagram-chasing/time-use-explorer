@@ -44,7 +44,6 @@
   export let cellClass: string = "py-1.5 px-3 text-xs border-b border-neutral/10";
   export let loadingClass: string = "p-6 text-center";
   export let emptyClass: string = "p-6 text-center";
-  export let loadingMessage: string = 'Loading data...';
 
   // Function to get cell class based on column
   function getCellClass(columnId: string): string {
@@ -203,7 +202,7 @@
   <div class={loadingClass}>
     <div class="flex flex-col items-center justify-center">
       <div class="w-6 h-6 border-2 border-yellow border-t-transparent rounded-full animate-spin mb-2"></div>
-      <p class="text-xs" style="font-family: var(--font-ui);">{loadingMessage}</p>
+      <p class="text-xs" style="font-family: var(--font-ui);">Loading data...</p>
     </div>
   </div>
 {:else}
