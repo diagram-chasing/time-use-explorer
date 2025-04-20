@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Database, BarChart, Clock, Plus, Trash, Info, ChevronDown } from 'lucide-svelte';
+  import { Database, BarChart, Clock, Plus, Trash, Info, ChevronDown, FileQuestion } from 'lucide-svelte';
   import FilterControls from './FilterControls.svelte';
   import Selector from './Selector.svelte';
   import ActionButton from './ActionButton.svelte';
@@ -86,10 +86,16 @@
           <p class="text-xs text-neutral" style="font-family: var(--font-ui);">
             This explorer lets you subset, filter, and create summaries of the entire 10 million+ records in the NTUS all in your browser.        </p>
       </div>
-      <button on:click={handleAboutClick} class="text-xs text-neutral bg-neutral text-white px-2 py-1 flex items-center gap-1" style="font-family: var(--font-ui);">
-        <Info class="w-3 h-3" />
-        How to use
+      <div class="flex gap-2">
+        <button on:click={handleAboutClick} class="text-xs text-neutral bg-neutral text-white px-2 py-1 flex items-center gap-1" style="font-family: var(--font-ui);">
+          <FileQuestion class="w-3 h-3" />
+          How to use
       </button>
+      <a href="https://github.com/Vonter/india-timeuse-survey/blob/main/DATA.md" target="_blank" class="text-xs text-neutral bg-neutral text-white px-2 py-1 flex items-center gap-1" style="font-family: var(--font-ui);">
+        <Info class="w-3 h-3" />
+        Data Dictionary
+      </a>
+    </div>
     </div>
   {/if}
 
