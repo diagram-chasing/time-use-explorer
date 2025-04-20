@@ -56,8 +56,22 @@
   // Check if a field is a demographic field
   function isDemographicField(field: string): boolean {
     // List of demographic fields that should be counted, not summed
-    const demographicFields = ['age', 'religion', 'gender', 'state', 'district', 
-                              'social_group', 'marital_status', 'education', 'household_size'];
+    const demographicFields = [
+      'age', 'religion', 'gender', 'state', 'district', 
+      'social_group', 'marital_status', 'education', 'household_size',
+      'activity_code'
+    ];
+    
+    // Also consider any field that doesn't start with aggregation prefixes as categorical
+    if (!field.startsWith('count_') && 
+        !field.startsWith('avg_') && 
+        !field.startsWith('sum_') && 
+        !field.startsWith('total_') &&
+        !field.includes('minutes') &&
+        !field.includes('time')) {
+      return true;
+    }
+    
     return demographicFields.includes(field);
   }
   

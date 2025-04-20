@@ -75,7 +75,7 @@
           activeChart === 'heatmap' ? 70 :
           margin.left,
     top: activeChart === 'heatmap' ? 70 : margin.top,
-    bottom: activeChart === 'bar' ? 50 : activeChart === 'heatmap' ? 10 : margin.bottom
+    bottom: activeChart === 'bar' ? 40 : activeChart === 'heatmap' ? 10 : margin.bottom
   };
   
   // Element references
@@ -143,9 +143,13 @@
     // Reset selections when view mode changes
     if (selectedXColumn === null || 
         (categoricalColumns.length > 0 && !categoricalColumns.some(c => c.id === selectedXColumn))) {
-      // Prefer geographic or demographic columns for X-axis
+      // Prefer original categorical variables over aggregated ones
       const preferredX = categoricalColumns.find(c => 
-        ['state', 'district', 'gender', 'age_group'].includes(c.id)
+        // First prioritize demographic columns that aren't prefixed with aggregation functions
+        !c.id.startsWith('count_') && 
+        !c.id.startsWith('avg_') && 
+        !c.id.startsWith('sum_') && 
+        ['state', 'district', 'gender', 'age_group', 'religion', 'social_group', 'activity_code'].includes(c.id)
       );
       selectedXColumn = preferredX ? preferredX.id : (categoricalColumns.length > 0 ? categoricalColumns[0].id : null);
     }
