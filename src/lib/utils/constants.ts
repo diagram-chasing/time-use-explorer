@@ -58,7 +58,7 @@ export const defaultActivityColumn = 'activity_code';
 
 // Default aggregations for summary view
 export const defaultAggregations = [
-  { column: '*', function: 'COUNT' }
+  { column: '*', function: 'COUNT_DISTINCT_PERSON' }
 ];
 
 // Default group by columns for summary view
