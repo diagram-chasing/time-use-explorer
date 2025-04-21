@@ -165,17 +165,7 @@
     
     colorScale = d3.scaleQuantize<string>()
       .domain([minValue, maxValue])
-      .range([
-        "#af6c0d",
-        "#b87f2a",
-        "#c19143",
-        "#caa35c",
-        "#d4b575",
-        "#ddc68f",
-        "#e8d8a9",
-        "#f3e9c4",
-        "#fffae0"
-      ].reverse());
+      .range(['#f7f7f7','#d9d9d9','#bdbdbd','#969696','#737373','#525252','#252525']);
   }
   
   // Format column labels for display
