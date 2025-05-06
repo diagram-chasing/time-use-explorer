@@ -57,6 +57,18 @@ function throttledQueryNotification(count: number, type: string): void {
   }
 }
 
+// Store for managing export confirmation dialog
+export const exportConfirmDialog = writable({
+  visible: false,
+  title: '',
+  message: '',
+  type: 'info',
+  onConfirm: () => { },
+  resultCount: 0,
+  selectedColumns: [] as string[],
+  filters: [] as any[]
+});
+
 // Add type definition for window extension
 declare global {
   interface Window {
@@ -361,17 +373,34 @@ export function createAppContext() {
     const filtersValue = get(filters);
     const resultCountValue = get(resultCount);
 
-    // Show warning for very large datasets (>100k rows)
+    // Show confirmation modal for very large datasets (>100k rows)
     if (resultCountValue > 100000) {
-      const confirmed = window.confirm(
-        `You are about to export ${resultCountValue.toLocaleString()} rows, which might take some time and use significant memory. Continue?`
-      );
-
-      if (!confirmed) {
-        return;
-      }
+      // Set the export confirmation dialog
+      exportConfirmDialog.set({
+        visible: true,
+        title: 'Large Dataset Export',
+        message: `You are about to export ${resultCountValue.toLocaleString()} rows, which might take some time and use significant memory. Do you want to continue?`,
+        type: 'warning',
+        onConfirm: async () => {
+          await executeExport(selectedColumnsValue, filtersValue, resultCountValue);
+        },
+        resultCount: resultCountValue,
+        selectedColumns: selectedColumnsValue,
+        filters: filtersValue
+      });
+      return;
     }
 
+    // For smaller datasets, export immediately without confirmation
+    await executeExport(selectedColumnsValue, filtersValue, resultCountValue);
+  }
+
+  // Helper function to execute the export after confirmation
+  async function executeExport(
+    selectedColumnsValue: string[],
+    filtersValue: any[],
+    resultCountValue: number
+  ): Promise<void> {
     try {
       loading.set(true);
 
