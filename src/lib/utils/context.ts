@@ -1,12 +1,12 @@
 import { getContext, setContext } from 'svelte';
 import { writable, derived, get, type Writable } from 'svelte/store';
-import { 
-  VIEW_MODES, 
+import {
+  VIEW_MODES,
   type ViewMode,
-  allColumns, 
-  defaultSelectedColumns, 
-  defaultFilters, 
-  defaultDemographicColumns, 
+  allColumns,
+  defaultSelectedColumns,
+  defaultFilters,
+  defaultDemographicColumns,
   defaultActivityColumn,
   defaultAggregations,
   defaultGroupByColumns,
@@ -38,8 +38,8 @@ function throttledQueryNotification(count: number, type: string): void {
   const now = Date.now();
   // Only show notification if it's different or enough time has passed
   if (count > 0 && (
-    count !== lastQueryNotification.count || 
-    type !== lastQueryNotification.type || 
+    count !== lastQueryNotification.count ||
+    type !== lastQueryNotification.type ||
     now - lastQueryNotification.timestamp > NOTIFICATION_THROTTLE_MS
   )) {
     notifications.queryCompleted(count, type);
@@ -56,14 +56,14 @@ declare global {
   interface Window {
     __duckDBBeforeUnloadAdded?: boolean;
   }
-  
+
   // Define custom events
   interface WindowEventMap {
-    'full_dataset_loaded': CustomEvent<{datasetVersion: string}>;
-    'query_completed': CustomEvent<{count: number, type: string}>;
-    'db_error': CustomEvent<{message: string}>;
-    'data_exported': CustomEvent<{type: string}>;
-    'notification': CustomEvent<{message: string, type: string}>;
+    'full_dataset_loaded': CustomEvent<{ datasetVersion: string }>;
+    'query_completed': CustomEvent<{ count: number, type: string }>;
+    'db_error': CustomEvent<{ message: string }>;
+    'data_exported': CustomEvent<{ type: string }>;
+    'notification': CustomEvent<{ message: string, type: string }>;
   }
 }
 
@@ -91,7 +91,7 @@ type AppContextType = {
   pageSize: Writable<number>;
   totalPages: Writable<number>;
   summaryResults: Writable<any[]>;
-  aggregations: Writable<Array<{column: string, function: string}>>;
+  aggregations: Writable<Array<{ column: string, function: string }>>;
   groupByColumns: Writable<string[]>;
   timeAnalysisResults: Writable<any[]>;
   demographicColumns: Writable<string[]>;
@@ -99,7 +99,8 @@ type AppContextType = {
   sortColumn: Writable<string>;
   sortDirection: Writable<'asc' | 'desc'>;
   columnTypesMap: Writable<Record<string, string>>;
-  
+  useWeightedAverage: Writable<boolean>;
+
   // Functions
   setViewMode: (mode: ViewMode) => void;
   executeRawDataQuery: () => Promise<void>;
@@ -154,18 +155,19 @@ export function createAppContext() {
   const activityColumn = writable(defaultActivityColumn);
   const sortColumn = writable('');
   const sortDirection = writable<'asc' | 'desc'>('desc');
+  const useWeightedAverage = writable(false);
 
   // Column types map
   const columnTypesMap = writable(createColumnTypesMap(allColumns));
-  
+
   // Function to set view mode
   function setViewMode(mode: ViewMode): void {
     viewMode.set(mode);
     summaryMode.set(mode === VIEW_MODES.SUMMARY);
     timeAnalysisMode.set(mode === VIEW_MODES.TIME_ANALYSIS);
-    
+
     // Note: URL updates removed - now handled manually through Copy URL button
-    
+
     // Run the appropriate query when switching modes
     if (mode === VIEW_MODES.RAW_DATA) {
       executeRawDataQuery();
@@ -185,30 +187,30 @@ export function createAppContext() {
       notifications.error(errorMsg);
       return;
     }
-    
+
     loading.set(true);
     error.set('');
-    
+
     try {
       const selectedColumnsValue = get(selectedColumns);
       const filtersValue = get(filters);
       const currentPageValue = get(currentPage);
       const pageSizeValue = get(pageSize);
-      
+
       const { results: queryResults, resultCount: count, totalPages: pages } = await runQuery(
         selectedColumnsValue,
         filtersValue,
         currentPageValue,
         pageSizeValue
       );
-      
+
       // Use notifications API
       // notifications.queryCompleted(count, 'raw');
-      
+
       results.set(queryResults);
       resultCount.set(count);
       totalPages.set(pages);
-      
+
       // Only notify about results if there are any
       if (count > 0) {
         throttledQueryNotification(count, 'raw');
@@ -235,28 +237,28 @@ export function createAppContext() {
       notifications.error(errorMsg);
       return;
     }
-    
+
     loading.set(true);
     error.set('');
-    
+
     try {
       const aggregationsValue = get(aggregations);
       const groupByColumnsValue = get(groupByColumns);
       const filtersValue = get(filters);
       const columnTypesMapValue = get(columnTypesMap);
-      
+
       const summaryResultsValue = await runSummaryQuery(
         aggregationsValue,
         groupByColumnsValue,
         filtersValue,
         columnTypesMapValue
       );
-      
+
       // Use notifications API
       // notifications.queryCompleted(summaryResultsValue.length, 'summary');
-      
+
       summaryResults.set(summaryResultsValue);
-      
+
       // Only notify about results if there are any
       if (summaryResultsValue.length > 0) {
         throttledQueryNotification(summaryResultsValue.length, 'summary');
@@ -283,37 +285,39 @@ export function createAppContext() {
       notifications.error(errorMsg);
       return;
     }
-    
+
     loading.set(true);
     error.set('');
-    
+
     try {
       const demographicColumnsValue = get(demographicColumns);
       const activityColumnValue = get(activityColumn);
       const filtersValue = get(filters);
       const columnTypesMapValue = get(columnTypesMap);
-      
+      const useWeightedAverageValue = get(useWeightedAverage);
+
       if (demographicColumnsValue.length === 0) {
         const errorMsg = 'Please select at least one demographic column to group by';
         error.set(errorMsg);
         notifications.error(errorMsg);
         return;
       }
-      
+
       const timeAnalysisResultsValue = await runTimeAnalysis(
         demographicColumnsValue,
         activityColumnValue,
         filtersValue,
-        columnTypesMapValue
+        columnTypesMapValue,
+        useWeightedAverageValue
       );
-      
+
       timeAnalysisResults.set(timeAnalysisResultsValue);
-      
+
       // Sort by average minutes by default (descending order)
       sortColumn.set('avg_minutes');
       sortDirection.set('desc');
       sortTimeAnalysisResults('avg_minutes');
-      
+
       // Only notify about results if there are any
       if (timeAnalysisResultsValue.length > 0) {
         throttledQueryNotification(timeAnalysisResultsValue.length, 'time analysis');
@@ -336,14 +340,14 @@ export function createAppContext() {
     const timeAnalysisResultsValue = get(timeAnalysisResults);
     const sortColumnValue = get(sortColumn);
     const sortDirectionValue = get(sortDirection);
-    
+
     const { results, sortColumn: newSortColumn, sortDirection: newSortDirection } = sortTimeResults(
       timeAnalysisResultsValue,
       column,
       sortColumnValue,
       sortDirectionValue
     );
-    
+
     timeAnalysisResults.set(results);
     sortColumn.set(newSortColumn);
     sortDirection.set(newSortDirection);
@@ -354,7 +358,7 @@ export function createAppContext() {
     const resultsValue = get(results);
     const selectedColumnsValue = get(selectedColumns);
     downloadRawDataCSV(resultsValue, selectedColumnsValue);
-    
+
     // Use notifications API
     notifications.dataExported('Raw data');
   }
@@ -363,7 +367,7 @@ export function createAppContext() {
   function downloadSummaryData(): void {
     const summaryResultsValue = get(summaryResults);
     downloadSummaryCSV(summaryResultsValue);
-    
+
     // Use notifications API
     notifications.dataExported('Summary data');
   }
@@ -372,7 +376,7 @@ export function createAppContext() {
   function downloadTimeAnalysisData(): void {
     const timeAnalysisResultsValue = get(timeAnalysisResults);
     downloadTimeAnalysisCSV(timeAnalysisResultsValue);
-    
+
     // Use notifications API
     notifications.dataExported('Time analysis data');
   }
@@ -381,12 +385,12 @@ export function createAppContext() {
   function changePage(newPage: number): void {
     const totalPagesValue = get(totalPages);
     if (newPage < 1 || newPage > totalPagesValue) return;
-    
+
     currentPage.set(newPage);
-    
+
     // Note: We removed URL state updates from here to only update when user
     // explicitly requests via the Copy URL button
-    
+
     executeRawDataQuery();
   }
 
@@ -447,19 +451,19 @@ export function createAppContext() {
   async function initializeDuckDB(): Promise<void> {
     loading.set(true);
     error.set('');
-    
+
     try {
       console.log("Initializing database...");
       loading.set(true);
       dbReady.set(false);
-      
+
       // Initialize DuckDB (will be in-memory now)
       await initDuckDB();
       dbReady.set(true);
-      
+
       // Execute initial query when DB is ready
       executeRawDataQuery();
-      
+
       // Use notifications API for successful initialization
       // notifications.info('Database initialized successfully');
     } catch (err) {
@@ -468,7 +472,7 @@ export function createAppContext() {
       error.set(`Error initializing DuckDB: ${errorMessage}`);
       dbReady.set(false);
       notifications.error(`Error initializing database: ${errorMessage}`);
-      
+
       // Clear localStorage flags if there was an error
       if (browser) {
         localStorage.removeItem('duckdb_initialized');
@@ -483,36 +487,36 @@ export function createAppContext() {
   async function retryWithSmallerSample(): Promise<void> {
     loading.set(true);
     error.set('');
-    
+
     try {
       // Since we can't use a smaller sample parameter with initDuckDB, 
       // we'll need to implement an alternative approach here.
       // For now, let's just reinitialize the database
       await initDuckDB();
       dbReady.set(true);
-      
+
       // Setup a more restrictive query with LIMIT
       filters.update(currentFilters => {
         // Check if we already have a person_id filter
         const hasPersonIdFilter = currentFilters.some(f => f.column === 'person_id' && f.operator === 'IS NOT');
-        
+
         if (!hasPersonIdFilter) {
-          return [...currentFilters, { 
-            column: 'person_id', 
-            operator: 'IS NOT', 
-            value: 'NULL', 
-            enabled: true 
+          return [...currentFilters, {
+            column: 'person_id',
+            operator: 'IS NOT',
+            value: 'NULL',
+            enabled: true
           }];
         }
         return currentFilters;
       });
-      
+
       currentPage.set(1);
       pageSize.update(p => Math.max(50, Math.floor(p / 2))); // Reduce page size by half
-      
+
       // Execute initial query with smaller sample
       executeRawDataQuery();
-      
+
       // Use notifications API for successful retry
       notifications.info('Retrying with a smaller data sample');
     } catch (err) {
@@ -549,7 +553,8 @@ export function createAppContext() {
     sortColumn,
     sortDirection,
     columnTypesMap,
-    
+    useWeightedAverage,
+
     // Functions
     setViewMode,
     executeRawDataQuery,
