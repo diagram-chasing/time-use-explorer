@@ -1,12 +1,12 @@
 import { getContext, setContext } from 'svelte';
 import { writable, derived, get, type Writable } from 'svelte/store';
-import { 
-  VIEW_MODES, 
+import {
+  VIEW_MODES,
   type ViewMode,
-  allColumns, 
-  defaultSelectedColumns, 
-  defaultFilters, 
-  defaultDemographicColumns, 
+  allColumns,
+  defaultSelectedColumns,
+  defaultFilters,
+  defaultDemographicColumns,
   defaultActivityColumn,
   defaultAggregations,
   defaultGroupByColumns,
@@ -16,9 +16,15 @@ import {
 } from './constants';
 import { createColumnTypesMap } from './dataUtils';
 import { runQuery, runSummaryQuery, runTimeAnalysis } from './queryUtils';
-import { downloadRawDataCSV, downloadSummaryCSV, downloadTimeAnalysisCSV } from './csvUtils';
+import {
+  downloadRawDataCSV,
+  downloadSummaryCSV,
+  downloadTimeAnalysisCSV,
+  downloadFullDataWithDuckDB,
+  exportLargeDatasetInChunks
+} from './csvUtils';
 import { sortTimeResults } from './dataUtils';
-import { initDuckDB } from '../duckdb/service';
+import { initDuckDB, executeQuery } from '../duckdb/service';
 import { browser } from '$app/environment';
 import { notifications } from './notificationUtils';
 import { updateURL } from './urlStateUtils';
@@ -38,8 +44,8 @@ function throttledQueryNotification(count: number, type: string): void {
   const now = Date.now();
   // Only show notification if it's different or enough time has passed
   if (count > 0 && (
-    count !== lastQueryNotification.count || 
-    type !== lastQueryNotification.type || 
+    count !== lastQueryNotification.count ||
+    type !== lastQueryNotification.type ||
     now - lastQueryNotification.timestamp > NOTIFICATION_THROTTLE_MS
   )) {
     notifications.queryCompleted(count, type);
@@ -56,14 +62,14 @@ declare global {
   interface Window {
     __duckDBBeforeUnloadAdded?: boolean;
   }
-  
+
   // Define custom events
   interface WindowEventMap {
-    'full_dataset_loaded': CustomEvent<{datasetVersion: string}>;
-    'query_completed': CustomEvent<{count: number, type: string}>;
-    'db_error': CustomEvent<{message: string}>;
-    'data_exported': CustomEvent<{type: string}>;
-    'notification': CustomEvent<{message: string, type: string}>;
+    'full_dataset_loaded': CustomEvent<{ datasetVersion: string }>;
+    'query_completed': CustomEvent<{ count: number, type: string }>;
+    'db_error': CustomEvent<{ message: string }>;
+    'data_exported': CustomEvent<{ type: string }>;
+    'notification': CustomEvent<{ message: string, type: string }>;
   }
 }
 
@@ -91,7 +97,7 @@ type AppContextType = {
   pageSize: Writable<number>;
   totalPages: Writable<number>;
   summaryResults: Writable<any[]>;
-  aggregations: Writable<Array<{column: string, function: string}>>;
+  aggregations: Writable<Array<{ column: string, function: string }>>;
   groupByColumns: Writable<string[]>;
   timeAnalysisResults: Writable<any[]>;
   demographicColumns: Writable<string[]>;
@@ -99,14 +105,14 @@ type AppContextType = {
   sortColumn: Writable<string>;
   sortDirection: Writable<'asc' | 'desc'>;
   columnTypesMap: Writable<Record<string, string>>;
-  
+
   // Functions
   setViewMode: (mode: ViewMode) => void;
   executeRawDataQuery: () => Promise<void>;
   executeSummaryQuery: () => Promise<void>;
   executeTimeAnalysis: () => Promise<void>;
   sortTimeAnalysisResults: (column: string) => void;
-  downloadRawData: () => void;
+  downloadRawData: () => Promise<void>;
   downloadSummaryData: () => void;
   downloadTimeAnalysisData: () => void;
   changePage: (newPage: number) => void;
@@ -157,15 +163,15 @@ export function createAppContext() {
 
   // Column types map
   const columnTypesMap = writable(createColumnTypesMap(allColumns));
-  
+
   // Function to set view mode
   function setViewMode(mode: ViewMode): void {
     viewMode.set(mode);
     summaryMode.set(mode === VIEW_MODES.SUMMARY);
     timeAnalysisMode.set(mode === VIEW_MODES.TIME_ANALYSIS);
-    
+
     // Note: URL updates removed - now handled manually through Copy URL button
-    
+
     // Run the appropriate query when switching modes
     if (mode === VIEW_MODES.RAW_DATA) {
       executeRawDataQuery();
@@ -185,30 +191,30 @@ export function createAppContext() {
       notifications.error(errorMsg);
       return;
     }
-    
+
     loading.set(true);
     error.set('');
-    
+
     try {
       const selectedColumnsValue = get(selectedColumns);
       const filtersValue = get(filters);
       const currentPageValue = get(currentPage);
       const pageSizeValue = get(pageSize);
-      
+
       const { results: queryResults, resultCount: count, totalPages: pages } = await runQuery(
         selectedColumnsValue,
         filtersValue,
         currentPageValue,
         pageSizeValue
       );
-      
+
       // Use notifications API
       // notifications.queryCompleted(count, 'raw');
-      
+
       results.set(queryResults);
       resultCount.set(count);
       totalPages.set(pages);
-      
+
       // Only notify about results if there are any
       if (count > 0) {
         throttledQueryNotification(count, 'raw');
@@ -235,28 +241,28 @@ export function createAppContext() {
       notifications.error(errorMsg);
       return;
     }
-    
+
     loading.set(true);
     error.set('');
-    
+
     try {
       const aggregationsValue = get(aggregations);
       const groupByColumnsValue = get(groupByColumns);
       const filtersValue = get(filters);
       const columnTypesMapValue = get(columnTypesMap);
-      
+
       const summaryResultsValue = await runSummaryQuery(
         aggregationsValue,
         groupByColumnsValue,
         filtersValue,
         columnTypesMapValue
       );
-      
+
       // Use notifications API
       // notifications.queryCompleted(summaryResultsValue.length, 'summary');
-      
+
       summaryResults.set(summaryResultsValue);
-      
+
       // Only notify about results if there are any
       if (summaryResultsValue.length > 0) {
         throttledQueryNotification(summaryResultsValue.length, 'summary');
@@ -283,37 +289,37 @@ export function createAppContext() {
       notifications.error(errorMsg);
       return;
     }
-    
+
     loading.set(true);
     error.set('');
-    
+
     try {
       const demographicColumnsValue = get(demographicColumns);
       const activityColumnValue = get(activityColumn);
       const filtersValue = get(filters);
       const columnTypesMapValue = get(columnTypesMap);
-      
+
       if (demographicColumnsValue.length === 0) {
         const errorMsg = 'Please select at least one demographic column to group by';
         error.set(errorMsg);
         notifications.error(errorMsg);
         return;
       }
-      
+
       const timeAnalysisResultsValue = await runTimeAnalysis(
         demographicColumnsValue,
         activityColumnValue,
         filtersValue,
         columnTypesMapValue
       );
-      
+
       timeAnalysisResults.set(timeAnalysisResultsValue);
-      
+
       // Sort by average minutes by default (descending order)
       sortColumn.set('avg_minutes');
       sortDirection.set('desc');
       sortTimeAnalysisResults('avg_minutes');
-      
+
       // Only notify about results if there are any
       if (timeAnalysisResultsValue.length > 0) {
         throttledQueryNotification(timeAnalysisResultsValue.length, 'time analysis');
@@ -336,34 +342,111 @@ export function createAppContext() {
     const timeAnalysisResultsValue = get(timeAnalysisResults);
     const sortColumnValue = get(sortColumn);
     const sortDirectionValue = get(sortDirection);
-    
+
     const { results, sortColumn: newSortColumn, sortDirection: newSortDirection } = sortTimeResults(
       timeAnalysisResultsValue,
       column,
       sortColumnValue,
       sortDirectionValue
     );
-    
+
     timeAnalysisResults.set(results);
     sortColumn.set(newSortColumn);
     sortDirection.set(newSortDirection);
   }
 
   // Function to download raw data as CSV
-  function downloadRawData(): void {
-    const resultsValue = get(results);
+  async function downloadRawData(): Promise<void> {
     const selectedColumnsValue = get(selectedColumns);
-    downloadRawDataCSV(resultsValue, selectedColumnsValue);
-    
-    // Use notifications API
-    notifications.dataExported('Raw data');
+    const filtersValue = get(filters);
+    const resultCountValue = get(resultCount);
+
+    // Show warning for very large datasets (>100k rows)
+    if (resultCountValue > 100000) {
+      const confirmed = window.confirm(
+        `You are about to export ${resultCountValue.toLocaleString()} rows, which might take some time and use significant memory. Continue?`
+      );
+
+      if (!confirmed) {
+        return;
+      }
+    }
+
+    try {
+      loading.set(true);
+
+      // For extremely large datasets (>500k rows), use chunked export
+      if (resultCountValue > 500000) {
+        await exportLargeDatasetInChunks(
+          selectedColumnsValue,
+          filtersValue,
+          resultCountValue,
+          runQuery,
+          25000 // Chunk size of 25k rows per request
+        );
+        loading.set(false);
+        return;
+      }
+
+      // For medium-large datasets, try to use DuckDB's export
+      await downloadFullDataWithDuckDB(
+        selectedColumnsValue,
+        filtersValue,
+        executeQuery
+      );
+
+      loading.set(false);
+    } catch (error) {
+      console.warn('DuckDB native export failed, falling back to in-memory export:', error);
+
+      // If data is too large (over 250k rows), don't attempt in-memory export but try chunked export
+      if (resultCountValue > 250000) {
+        try {
+          await exportLargeDatasetInChunks(
+            selectedColumnsValue,
+            filtersValue,
+            resultCountValue,
+            runQuery,
+            10000 // Smaller chunk size for fallback
+          );
+          loading.set(false);
+          return;
+        } catch (chunkError) {
+          console.error('Chunked export also failed:', chunkError);
+          notifications.error(
+            `This dataset (${resultCountValue.toLocaleString()} rows) is too large to export in the browser. ` +
+            `Please try applying more filters to reduce the size.`
+          );
+          loading.set(false);
+          return;
+        }
+      }
+
+      // For smaller datasets, try fallback approach - just export current page
+      loading.set(false);
+
+      // Show warning notification about limited data
+      const resultsValue = get(results);
+      const currentPageValue = get(currentPage);
+      const pageSizeValue = get(pageSize);
+
+      notifications.info(
+        `Exporting only page ${currentPageValue} (${resultsValue.length} rows out of ${resultCountValue}) due to browser limitations`
+      );
+
+      // Use the regular CSV export for current page
+      downloadRawDataCSV(resultsValue, selectedColumnsValue);
+
+      // Use notifications API
+      notifications.dataExported('Current page of raw data');
+    }
   }
 
   // Function to download summary data as CSV
   function downloadSummaryData(): void {
     const summaryResultsValue = get(summaryResults);
     downloadSummaryCSV(summaryResultsValue);
-    
+
     // Use notifications API
     notifications.dataExported('Summary data');
   }
@@ -372,7 +455,7 @@ export function createAppContext() {
   function downloadTimeAnalysisData(): void {
     const timeAnalysisResultsValue = get(timeAnalysisResults);
     downloadTimeAnalysisCSV(timeAnalysisResultsValue);
-    
+
     // Use notifications API
     notifications.dataExported('Time analysis data');
   }
@@ -381,12 +464,12 @@ export function createAppContext() {
   function changePage(newPage: number): void {
     const totalPagesValue = get(totalPages);
     if (newPage < 1 || newPage > totalPagesValue) return;
-    
+
     currentPage.set(newPage);
-    
+
     // Note: We removed URL state updates from here to only update when user
     // explicitly requests via the Copy URL button
-    
+
     executeRawDataQuery();
   }
 
@@ -447,19 +530,19 @@ export function createAppContext() {
   async function initializeDuckDB(): Promise<void> {
     loading.set(true);
     error.set('');
-    
+
     try {
       console.log("Initializing database...");
       loading.set(true);
       dbReady.set(false);
-      
+
       // Initialize DuckDB (will be in-memory now)
       await initDuckDB();
       dbReady.set(true);
-      
+
       // Execute initial query when DB is ready
       executeRawDataQuery();
-      
+
       // Use notifications API for successful initialization
       // notifications.info('Database initialized successfully');
     } catch (err) {
@@ -468,7 +551,7 @@ export function createAppContext() {
       error.set(`Error initializing DuckDB: ${errorMessage}`);
       dbReady.set(false);
       notifications.error(`Error initializing database: ${errorMessage}`);
-      
+
       // Clear localStorage flags if there was an error
       if (browser) {
         localStorage.removeItem('duckdb_initialized');
@@ -483,36 +566,36 @@ export function createAppContext() {
   async function retryWithSmallerSample(): Promise<void> {
     loading.set(true);
     error.set('');
-    
+
     try {
       // Since we can't use a smaller sample parameter with initDuckDB, 
       // we'll need to implement an alternative approach here.
       // For now, let's just reinitialize the database
       await initDuckDB();
       dbReady.set(true);
-      
+
       // Setup a more restrictive query with LIMIT
       filters.update(currentFilters => {
         // Check if we already have a person_id filter
         const hasPersonIdFilter = currentFilters.some(f => f.column === 'person_id' && f.operator === 'IS NOT');
-        
+
         if (!hasPersonIdFilter) {
-          return [...currentFilters, { 
-            column: 'person_id', 
-            operator: 'IS NOT', 
-            value: 'NULL', 
-            enabled: true 
+          return [...currentFilters, {
+            column: 'person_id',
+            operator: 'IS NOT',
+            value: 'NULL',
+            enabled: true
           }];
         }
         return currentFilters;
       });
-      
+
       currentPage.set(1);
       pageSize.update(p => Math.max(50, Math.floor(p / 2))); // Reduce page size by half
-      
+
       // Execute initial query with smaller sample
       executeRawDataQuery();
-      
+
       // Use notifications API for successful retry
       notifications.info('Retrying with a smaller data sample');
     } catch (err) {
@@ -549,7 +632,7 @@ export function createAppContext() {
     sortColumn,
     sortDirection,
     columnTypesMap,
-    
+
     // Functions
     setViewMode,
     executeRawDataQuery,
