@@ -8,7 +8,7 @@ duckdb -c "COPY (
   SELECT state, district, gender, age, marital_status, education, religion, 
          social_group, household_size, activity_code, activity_location, 
          monthly_expenditure, industry, time_from, time_to,
-         nsc_person, mult_person
+         nsc, mult
   FROM read_parquet('src/lib/assets/india_timeuse_survey.parquet')
   USING SAMPLE 1%
 ) TO 'src/lib/assets/sample_1_perc.parquet' (FORMAT PARQUET);"

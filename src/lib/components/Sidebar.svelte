@@ -37,7 +37,7 @@
 		removeAggregation,
 		toggleGroupByColumn,
 		toggleDemographicColumn,
-		useWeightedAverage
+		useWeights
 	} = getAppContext();
 
 	// Tooltip state
@@ -165,19 +165,19 @@
 								size="sm"
 							/>
 
-							<!-- Weighted average toggle -->
+							<!-- Use weights toggle -->
 							<div class="form-control">
 								<label class="label mt-1 cursor-pointer justify-start gap-3 p-0">
 									<input
 										type="checkbox"
 										class="toggle toggle-sm toggle-primary"
-										bind:checked={$useWeightedAverage}
+										bind:checked={$useWeights}
 										on:change={executeTimeAnalysis}
 									/>
-									<span class="label-text text-xs">Use geographically weighted average</span>
+									<span class="label-text text-xs">Use weights</span>
 								</label>
 								<p class="text-base-300 mt-1 ml-10 text-[10px]">
-									When enabled, uses survey weights (nsc_person) for more accurate national
+									When enabled, uses survey weights (mult) for more accurate national
 									representation
 								</p>
 							</div>
@@ -347,15 +347,15 @@
 							size="sm"
 						/>
 
-						<!-- Weighted average toggle -->
+						<!-- Use weights toggle -->
 						<div class="form-control">
 							<label class="label mt-1 cursor-pointer items-center justify-center gap-3 p-0">
 								<input
 									type="checkbox"
 									class="toggle toggle-xs toggle-primary size-3"
-									bind:checked={$useWeightedAverage}
+									bind:checked={$useWeights}
 								/>
-								<span class="label-text mb-1 text-[10px]">Geographically weighted average</span>
+								<span class="label-text mb-1 text-[10px]">Use weights</span>
 							</label>
 						</div>
 					</div>
