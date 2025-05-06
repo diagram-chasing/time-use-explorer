@@ -26,7 +26,7 @@ const QUERY_CACHE_VERSION = 'v2'; // Updated cache version
  */
 export function clearAllQueryCache(): void {
   if (!browser) return;
-  
+
   try {
     // Find all keys starting with the cache prefix
     const keysToRemove = [];
@@ -36,7 +36,7 @@ export function clearAllQueryCache(): void {
         keysToRemove.push(key);
       }
     }
-    
+
     // Remove all cache entries
     keysToRemove.forEach(key => localStorage.removeItem(key));
     console.log(`[queryUtils] Cleared ${keysToRemove.length} cached queries`);
@@ -52,7 +52,7 @@ export function clearAllQueryCache(): void {
  */
 export function cacheQueryResult(key: string, data: any): void {
   if (!browser) return;
-  
+
   try {
     // Use DuckDB's dataset version for cache key versioning
     const datasetVersion = getDatasetVersion();
@@ -61,22 +61,22 @@ export function cacheQueryResult(key: string, data: any): void {
       timestamp: Date.now(),
       data
     };
-    
+
     // Use a chunked approach for large results to avoid localStorage limits
     const jsonData = JSON.stringify(cacheEntry);
-    
+
     // If data is too large, chunk it
     if (jsonData.length > 1000000) { // ~1MB
       const chunks = Math.ceil(jsonData.length / 1000000);
       console.log(`Splitting cache data into ${chunks} chunks...`);
-      
+
       // Store metadata
       localStorage.setItem(`${versionedCacheKey}_meta`, JSON.stringify({
         chunks,
         totalLength: jsonData.length,
         timestamp: Date.now()
       }));
-      
+
       // Store chunks
       for (let i = 0; i < chunks; i++) {
         const start = i * 1000000;
@@ -87,7 +87,7 @@ export function cacheQueryResult(key: string, data: any): void {
       // Store normally for small data
       localStorage.setItem(versionedCacheKey, jsonData);
     }
-    
+
     console.log(`Cached query result for key: ${key} (${datasetVersion} dataset)`);
   } catch (error) {
     console.warn('Failed to cache query result:', error);
@@ -101,20 +101,20 @@ export function cacheQueryResult(key: string, data: any): void {
  */
 export function getCachedQueryResult(key: string): any {
   if (!browser) return null;
-  
+
   try {
     // Use DuckDB's dataset version for cache key versioning
     const datasetVersion = getDatasetVersion();
     const versionedCacheKey = `${QUERY_CACHE_PREFIX}${QUERY_CACHE_VERSION}_${datasetVersion}_${key}`;
-    
+
     // Check if we have metadata for chunked data
     const metaData = localStorage.getItem(`${versionedCacheKey}_meta`);
-    
+
     if (metaData) {
       // We have chunked data
       const meta = JSON.parse(metaData);
       const age = Date.now() - meta.timestamp;
-      
+
       // Check if cache is still valid
       if (age <= CACHE_EXPIRY_MS) {
         // Reconstruct the chunks
@@ -127,11 +127,11 @@ export function getCachedQueryResult(key: string): any {
           }
           jsonData += chunk;
         }
-        
+
         // Parse and return the data
         const cacheEntry = JSON.parse(jsonData);
-      
-        
+
+
         console.log(`Using chunked cached query result for key: ${key} (${datasetVersion} dataset)`);
         return cacheEntry.data;
       } else {
@@ -146,15 +146,15 @@ export function getCachedQueryResult(key: string): any {
       // Check for normal cache entry
       const cachedValue = localStorage.getItem(versionedCacheKey);
       if (!cachedValue) return null;
-      
+
       const cacheEntry = JSON.parse(cachedValue);
       const age = Date.now() - cacheEntry.timestamp;
-      
+
       // Check if cache is still valid
       if (age <= CACHE_EXPIRY_MS) {
         console.log(`Using cached query result for key: ${key} (${datasetVersion} dataset)`);
-        
-      
+
+
         return cacheEntry.data;
       } else {
         // Clear expired cache
@@ -185,7 +185,7 @@ export function generateQueryCacheKey(params: any): string {
  */
 export function buildWhereClause(filters: Filter[]): string {
   let whereConditions: string[] = [];
-  
+
   filters.forEach(filter => {
     if (filter.enabled && filter.value) {
       // Handle special time virtual column
@@ -197,19 +197,19 @@ export function buildWhereClause(filters: Filter[]): string {
             // We'll still try to process it, the handleTimeRangeFilter will handle this gracefully
           }
         }
-        
+
         // Process time range filter differently
         handleTimeRangeFilter(filter, whereConditions);
         return; // Skip regular processing for this filter
       }
-      
+
       // Get column type from our columns data
       const columnInfo = allColumns.find(c => c.id === filter.column);
       const columnType = columnInfo?.type || '';
-      
+
       // Format value based on column type
       let formattedValue;
-      
+
       if (columnType === 'string') {
         // For string types, wrap in quotes
         formattedValue = `'${filter.value.replace(/'/g, "''")}'`;
@@ -221,7 +221,7 @@ export function buildWhereClause(filters: Filter[]): string {
         // Default case
         formattedValue = typeof filter.value === 'string' ? `'${filter.value.replace(/'/g, "''")}'` : filter.value;
       }
-      
+
       // Build condition based on operator
       switch (filter.operator) {
         case '=':
@@ -319,7 +319,7 @@ export function buildWhereClause(filters: Filter[]): string {
             const trimmed = v.trim();
             return columnType === 'string' ? `'${trimmed.replace(/'/g, "''")}'` : trimmed;
           }).join(', ');
-          
+
           if (columnType === 'string') {
             whereConditions.push(`UPPER(${filter.column}) IN (${inValues.toUpperCase()})`);
           } else {
@@ -332,7 +332,7 @@ export function buildWhereClause(filters: Filter[]): string {
             const trimmed = v.trim();
             return columnType === 'string' ? `'${trimmed.replace(/'/g, "''")}'` : trimmed;
           }).join(', ');
-          
+
           if (columnType === 'string') {
             whereConditions.push(`UPPER(${filter.column}) NOT IN (${notInValues.toUpperCase()})`);
           } else {
@@ -348,7 +348,7 @@ export function buildWhereClause(filters: Filter[]): string {
       }
     }
   });
-  
+
   return whereConditions.join(' AND ');
 }
 
@@ -360,12 +360,12 @@ export function buildWhereClause(filters: Filter[]): string {
 function handleTimeRangeFilter(filter: Filter, whereConditions: string[]): void {
   // Get precision mode (default to 'overlap' if not set)
   const precision = (filter as any).precision || 'overlap';
-  
+
   switch (filter.operator) {
     case 'BETWEEN':
       // Split the value by comma and handle potential formatting issues
       let startTime, endTime;
-      
+
       if (filter.value.includes(',')) {
         [startTime, endTime] = filter.value.split(',').map(v => v.trim());
       } else {
@@ -375,7 +375,7 @@ function handleTimeRangeFilter(filter: Filter, whereConditions: string[]): void 
         endTime = filter.value.trim();
         console.warn('Time BETWEEN filter missing comma separator:', filter.value);
       }
-      
+
       if (startTime && endTime) {
         switch (precision) {
           case 'overlap':
@@ -386,7 +386,7 @@ function handleTimeRangeFilter(filter: Filter, whereConditions: string[]): void 
             whereConditions.push(`time_from <= '${endTime.replace(/'/g, "''")}'`);
             whereConditions.push(`time_to >= '${startTime.replace(/'/g, "''")}'`);
             break;
-            
+
           case 'contain':
             // Contained Within: Activities that happen entirely within the time range
             // An activity is contained if:
@@ -395,7 +395,7 @@ function handleTimeRangeFilter(filter: Filter, whereConditions: string[]): void 
             whereConditions.push(`time_from >= '${startTime.replace(/'/g, "''")}'`);
             whereConditions.push(`time_to <= '${endTime.replace(/'/g, "''")}'`);
             break;
-            
+
           case 'start':
             // Starting In: Activities that start within the time range
             // An activity starts in the range if:
@@ -418,7 +418,7 @@ function handleTimeRangeFilter(filter: Filter, whereConditions: string[]): void 
             // 2. It starts after the range ends
             whereConditions.push(`(time_to < '${notStartTime.replace(/'/g, "''")}' OR time_from > '${notEndTime.replace(/'/g, "''")}')`);
             break;
-            
+
           case 'contain':
             // NOT Contained Within: Activities that aren't entirely contained within the time range
             // An activity isn't contained if:
@@ -426,7 +426,7 @@ function handleTimeRangeFilter(filter: Filter, whereConditions: string[]): void 
             // 2. Its end time is > end of range
             whereConditions.push(`(time_from < '${notStartTime.replace(/'/g, "''")}' OR time_to > '${notEndTime.replace(/'/g, "''")}')`);
             break;
-            
+
           case 'start':
             // NOT Starting In: Activities that don't start within the time range
             // An activity doesn't start in the range if:
@@ -448,7 +448,7 @@ function handleTimeRangeFilter(filter: Filter, whereConditions: string[]): void 
             whereConditions.push(`time_to >= '${exactTime.replace(/'/g, "''")}'`);
             break;
           case 'contain':
-            // Impossible to be contained at exact time point, use same as 'start'
+          // Impossible to be contained at exact time point, use same as 'start'
           case 'start':
             // Activity starting at this exact time
             whereConditions.push(`time_from = '${exactTime.replace(/'/g, "''")}'`);
@@ -466,7 +466,7 @@ function handleTimeRangeFilter(filter: Filter, whereConditions: string[]): void 
             whereConditions.push(`(time_from > '${exactTime.replace(/'/g, "''")}' OR time_to < '${exactTime.replace(/'/g, "''")}')`);
             break;
           case 'contain':
-            // Impossible to be contained at exact time point, use same as 'start'
+          // Impossible to be contained at exact time point, use same as 'start'
           case 'start':
             // NOT starting at this exact time
             whereConditions.push(`time_from != '${exactTime.replace(/'/g, "''")}'`);
@@ -580,37 +580,37 @@ export function buildQuery(
   if (selectedColumns.length === 0) {
     return '';
   }
-  
+
   // Build columns part
   const columnsStr = selectedColumns.join(', ');
-  
+
   // Use the shared where clause builder
   const whereConditionsStr = buildWhereClause(filters);
-  
+
   // Complete query with pagination
   let query = `SELECT ${columnsStr} FROM india_timeuse_survey`;
-  
+
   if (whereConditionsStr) {
     query += ` WHERE ${whereConditionsStr}`;
   }
-  
+
   // Add LIMIT and OFFSET for pagination
   const offset = (currentPage - 1) * pageSize;
   query += ` LIMIT ${pageSize} OFFSET ${offset}`;
-  
+
   return query;
 }
 
 export function buildCountQuery(filters: Filter[]): string {
   // Use the shared where clause builder
   const whereConditionsStr = buildWhereClause(filters);
-  
+
   let query = 'SELECT COUNT(*) AS count FROM india_timeuse_survey';
-  
+
   if (whereConditionsStr) {
     query += ` WHERE ${whereConditionsStr}`;
   }
-  
+
   return query;
 }
 
@@ -629,31 +629,31 @@ export async function runQuery(
     page: currentPage,
     size: pageSize
   };
-  
+
   const cacheKey = generateQueryCacheKey(cacheParams);
-  
+
   // Check for cached results
   const cachedResult = getCachedQueryResult(cacheKey);
   if (cachedResult) {
     return cachedResult;
   }
-  
+
   const query = buildQuery(selectedColumns, filters, currentPage, pageSize);
   if (!query) {
     return { results: [], resultCount: 0, totalPages: 1 };
   }
-  
+
   // Run count query first
   const countQuery = buildCountQuery(filters);
   const countResult = await executeQuery(countQuery);
   const countArray = countResult.toArray();
-  
+
   let resultCount = 0;
   let totalPages = 1;
-  
+
   if (countArray.length > 0) {
     let countValue = countArray[0].count;
-    
+
     // Handle BigInt conversion for the count result
     if (typeof countValue === 'bigint') {
       // Convert BigInt to number if it's within safe integer range
@@ -664,28 +664,28 @@ export async function runQuery(
         countValue = parseInt(countValue.toString(), 10);
       }
     }
-    
+
     resultCount = countValue;
-    
+
     // Ensure pageSize is a number for calculation
     const pageSizeNum = Number(pageSize);
     totalPages = Math.ceil(Number(resultCount) / pageSizeNum);
   }
-  
+
   // Run data query
   const result = await executeQuery(query);
-  
+
   // Process results
   const results = result.toArray().map((row: any) => {
     // Convert row object to plain object
     const obj: Record<string, any> = {};
-    
+
     // Check if row is an array-like object
     if (Array.isArray(row) || (typeof row === 'object' && 'length' in row)) {
       // Use index-based access
       selectedColumns.forEach((col, i) => {
         let value = row[i];
-        
+
         // Handle BigInt conversion to regular numbers for display
         if (typeof value === 'bigint') {
           // Convert BigInt to number if it's within safe integer range
@@ -696,14 +696,14 @@ export async function runQuery(
             value = value.toString();
           }
         }
-        
+
         obj[col] = value;
       });
     } else {
       // Direct property access
       selectedColumns.forEach((col) => {
         let value = row[col];
-        
+
         // Handle BigInt conversion to regular numbers for display
         if (typeof value === 'bigint') {
           // Convert BigInt to number if it's within safe integer range
@@ -714,17 +714,17 @@ export async function runQuery(
             value = value.toString();
           }
         }
-        
+
         obj[col] = value;
       });
     }
     return obj;
   });
-  
+
   // Cache the result before returning
   const resultObj = { results, resultCount, totalPages };
   cacheQueryResult(cacheKey, resultObj);
-  
+
   return resultObj;
 }
 
@@ -742,29 +742,29 @@ export async function runSummaryQuery(
     groupByColumns,
     filters: filters.filter(f => f.enabled) // Only include enabled filters
   };
-  
+
   const cacheKey = generateQueryCacheKey(cacheParams);
-  
+
   // Check for cached results
   const cachedResult = getCachedQueryResult(cacheKey);
   if (cachedResult) {
     return cachedResult;
   }
-  
+
   // Default to COUNT(*) if nothing is selected
   if (aggregations.length === 0 && groupByColumns.length === 0) {
     aggregations = [{ column: '*', function: 'COUNT' }];
   }
-  
+
   const result = await executeSummaryQuery(aggregations, groupByColumns, filters, columnTypesMap);
-  
+
   // Convert Apache Arrow result to plain objects
   const results = result.toArray().map((row: any) => {
     const obj: Record<string, any> = {};
-    
+
     // Process columns - either group by columns or aggregation results
     const columns = [...groupByColumns];
-    
+
     // Add aggregation result columns
     aggregations.forEach(agg => {
       let columnName;
@@ -783,13 +783,13 @@ export async function runSummaryQuery(
       }
       columns.push(columnName);
     });
-    
+
     // Map row values to column names
     if (Array.isArray(row) || (typeof row === 'object' && 'length' in row)) {
       // Handle array-like object
       columns.forEach((col, i) => {
         let value = row[i];
-        
+
         // Handle BigInt conversion to regular numbers for display
         if (typeof value === 'bigint') {
           if (value <= Number.MAX_SAFE_INTEGER && value >= Number.MIN_SAFE_INTEGER) {
@@ -798,14 +798,14 @@ export async function runSummaryQuery(
             value = value.toString();
           }
         }
-        
+
         obj[col] = value;
       });
     } else {
       // Handle direct property access
       columns.forEach(col => {
         let value = row[col];
-        
+
         // Handle BigInt conversion to regular numbers for display
         if (typeof value === 'bigint') {
           if (value <= Number.MAX_SAFE_INTEGER && value >= Number.MIN_SAFE_INTEGER) {
@@ -814,17 +814,17 @@ export async function runSummaryQuery(
             value = value.toString();
           }
         }
-        
+
         obj[col] = value;
       });
     }
-    
+
     return obj;
   });
-  
+
   // Cache the result before returning
   cacheQueryResult(cacheKey, results);
-  
+
   return results;
 }
 
@@ -833,54 +833,57 @@ export async function runTimeAnalysis(
   demographicColumns: string[],
   activityColumn: string,
   filters: Filter[],
-  columnTypesMap: Record<string, string>
+  columnTypesMap: Record<string, string>,
+  useWeightedAverage: boolean = false
 ): Promise<any[]> {
   // Create a cache key from the query parameters
   const cacheParams = {
     type: 'time_analysis',
     demographicColumns,
     activityColumn,
-    filters: filters.filter(f => f.enabled) // Only include enabled filters
+    filters: filters.filter(f => f.enabled), // Only include enabled filters
+    useWeightedAverage // Include in cache key so weighted/unweighted are cached separately
   };
-  
+
   const cacheKey = generateQueryCacheKey(cacheParams);
-  
+
   // Check for cached results
   const cachedResult = getCachedQueryResult(cacheKey);
   if (cachedResult) {
     return cachedResult;
   }
-  
+
   if (demographicColumns.length === 0) {
     throw new Error('Please select at least one demographic column to group by');
   }
-  
+
   const result = await calculateTimeSpentByDemographic(
-    demographicColumns, 
-    activityColumn, 
-    filters, 
-    columnTypesMap
+    demographicColumns,
+    activityColumn,
+    filters,
+    columnTypesMap,
+    useWeightedAverage
   );
-  
+
   // Convert Apache Arrow result to plain objects
   const results = result.toArray().map((row: any) => {
     const obj: Record<string, any> = {};
-    
+
     // Process all columns
     const columns = [...demographicColumns];
     if (activityColumn && activityColumn !== '*') {
       columns.push(activityColumn);
     }
-    
+
     // Add calculated columns
     columns.push('avg_minutes', 'total_minutes', 'activity_count');
-    
+
     // Map row values to column names
     if (Array.isArray(row) || (typeof row === 'object' && 'length' in row)) {
       // Handle array-like object
       columns.forEach((col, i) => {
         let value = row[i];
-        
+
         // Handle BigInt conversion to regular numbers for display
         if (typeof value === 'bigint') {
           if (value <= Number.MAX_SAFE_INTEGER && value >= Number.MIN_SAFE_INTEGER) {
@@ -889,14 +892,14 @@ export async function runTimeAnalysis(
             value = value.toString();
           }
         }
-        
+
         obj[col] = value;
       });
     } else {
       // Handle direct property access
       columns.forEach(col => {
         let value = row[col];
-        
+
         // Handle BigInt conversion to regular numbers for display
         if (typeof value === 'bigint') {
           if (value <= Number.MAX_SAFE_INTEGER && value >= Number.MIN_SAFE_INTEGER) {
@@ -905,16 +908,16 @@ export async function runTimeAnalysis(
             value = value.toString();
           }
         }
-        
+
         obj[col] = value;
       });
     }
-    
+
     return obj;
   });
-  
+
   // Cache the result before returning
   cacheQueryResult(cacheKey, results);
-  
+
   return results;
 } 

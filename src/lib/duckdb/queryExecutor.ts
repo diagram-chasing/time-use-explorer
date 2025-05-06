@@ -17,10 +17,10 @@ async function executeQuery(query: string): Promise<any> {
       notifications.error(errorMsg);
       throw new Error(errorMsg);
     }
-    
+
     // Create a new connection for this query
     const conn = await db.connect();
-    
+
     try {
       // Execute query and return the raw result
       console.log(`Executing query: ${query}`);
@@ -45,7 +45,7 @@ async function getColumns(): Promise<ColumnInfo[]> {
     FROM information_schema.columns 
     WHERE table_name = 'india_timeuse_survey'
   `);
-  
+
   // Process the result after getting the raw DuckDB result
   const rows = result.toArray();
   return rows.map((row: any) => ({
@@ -73,20 +73,20 @@ async function getPreview(): Promise<any> {
  * @returns Raw DuckDB query result
  */
 async function executeSummaryQuery(
-  aggregations: Array<{column: string, function: string}>,
+  aggregations: Array<{ column: string, function: string }>,
   groupByColumns: string[],
-  filters: Array<{column: string, operator: string, value: string, enabled: boolean, precision?: string}>,
+  filters: Array<{ column: string, operator: string, value: string, enabled: boolean, precision?: string }>,
   columnTypes: Record<string, string>
 ): Promise<any> {
   // Create a cache key for this query
   const cacheKey = `summary_${JSON.stringify({ aggregations, groupByColumns, filters })}`;
-  
+
   return cacheHelper.executeQueryWithCache(async () => {
     const db = dbCore.getDatabase();
     if (!db) {
       throw new Error('DuckDB is not initialized');
     }
-    
+
     // Build the aggregation part
     const aggregationClauses = aggregations.map(agg => {
       // Handle different counting methods with clear, intuitive SQL
@@ -114,10 +114,10 @@ async function executeSummaryQuery(
         return `${agg.function}(${agg.column}) AS ${agg.function.toLowerCase()}_${agg.column}`;
       }
     });
-    
+
     // Build the GROUP BY part
     const groupByClauses = [...groupByColumns];
-    
+
     // Build the WHERE clause
     const whereConditions: string[] = [];
     filters.forEach(filter => {
@@ -127,10 +127,10 @@ async function executeSummaryQuery(
           handleTimeFilter(filter, whereConditions);
           return;
         }
-        
+
         // Use column types from the columnTypes map
         const columnType = columnTypes[filter.column] || 'string';
-        
+
         let formattedValue;
         if (columnType === 'string') {
           formattedValue = `'${filter.value.replace(/'/g, "''")}'`;
@@ -139,7 +139,7 @@ async function executeSummaryQuery(
         } else {
           formattedValue = typeof filter.value === 'string' ? `'${filter.value.replace(/'/g, "''")}'` : filter.value;
         }
-        
+
         // Build the condition based on operator
         switch (filter.operator) {
           case '=':
@@ -206,7 +206,7 @@ async function executeSummaryQuery(
                 endTime = timeValue;
                 console.warn('BETWEEN filter missing comma separator:', filter.value);
               }
-              
+
               if (startTime && endTime) {
                 whereConditions.push(`${filter.column} >= '${startTime.replace(/'/g, "''")}'`);
                 whereConditions.push(`${filter.column} <= '${endTime.replace(/'/g, "''")}'`);
@@ -239,21 +239,21 @@ async function executeSummaryQuery(
         }
       }
     });
-    
+
     // Assemble the clauses
-    const whereClause = whereConditions.length > 0 
-      ? `WHERE ${whereConditions.join(' AND ')}` 
+    const whereClause = whereConditions.length > 0
+      ? `WHERE ${whereConditions.join(' AND ')}`
       : '';
-    
-    const groupByClause = groupByClauses.length > 0 
-      ? `GROUP BY ${groupByClauses.join(', ')}` 
+
+    const groupByClause = groupByClauses.length > 0
+      ? `GROUP BY ${groupByClauses.join(', ')}`
       : '';
-    
+
     const selectClauses = [
       ...groupByClauses,
       ...aggregationClauses
     ];
-    
+
     // Build the complete query
     const query = `
       SELECT ${selectClauses.join(', ')}
@@ -262,10 +262,10 @@ async function executeSummaryQuery(
       ${groupByClause}
       ${groupByClause ? 'ORDER BY ' + groupByClauses[0] : ''}
     `;
-    
+
     // Execute the query
     const conn = await db.connect();
-    
+
     try {
       console.log(`Executing summary query: ${query}`);
       return await conn.query(query);
@@ -281,26 +281,28 @@ async function executeSummaryQuery(
  * @param activityColumn Activity column for grouping
  * @param filters List of filter conditions
  * @param columnTypes Map of column types for value formatting
+ * @param useWeightedAverage Whether to use weighted average based on nsc_person
  * @returns Raw DuckDB query result
  */
 async function calculateTimeSpentByDemographic(
   demographicColumns: string[],
   activityColumn: string = 'activity_code',
-  filters: Array<{column: string, operator: string, value: string, enabled: boolean, precision?: string}>,
-  columnTypes: Record<string, string>
+  filters: Array<{ column: string, operator: string, value: string, enabled: boolean, precision?: string }>,
+  columnTypes: Record<string, string>,
+  useWeightedAverage: boolean = false
 ): Promise<any> {
   if (demographicColumns.length === 0) {
     throw new Error('At least one demographic column must be specified');
   }
-  
+
   // Build GROUP BY clause
   const groupByColumns = [...demographicColumns];
   if (activityColumn && activityColumn !== '*') {
     groupByColumns.push(activityColumn);
   }
-  
+
   const groupByClause = `GROUP BY ${groupByColumns.join(', ')}`;
-  
+
   // Build WHERE clause for filters
   let whereConditions: string[] = [];
   filters.forEach(filter => {
@@ -310,10 +312,10 @@ async function calculateTimeSpentByDemographic(
         handleTimeFilter(filter, whereConditions);
         return;
       }
-      
+
       // Format value based on column type
       let formattedValue;
-      
+
       if (columnTypes[filter.column] === 'string') {
         // For string types, wrap in quotes
         formattedValue = `'${filter.value.replace(/'/g, "''")}'`;
@@ -324,7 +326,7 @@ async function calculateTimeSpentByDemographic(
         // Default case
         formattedValue = typeof filter.value === 'string' ? `'${filter.value.replace(/'/g, "''")}'` : filter.value;
       }
-      
+
       // Build the condition based on operator
       switch (filter.operator) {
         case '=':
@@ -403,40 +405,91 @@ async function calculateTimeSpentByDemographic(
       }
     }
   });
-  
-  const whereClause = whereConditions.length > 0 
-    ? `WHERE ${whereConditions.join(' AND ')}` 
+
+  const whereClause = whereConditions.length > 0
+    ? `WHERE ${whereConditions.join(' AND ')}`
     : '';
-  
+
   // Always use the full dataset for time spent queries
   const tableName = 'india_timeuse_survey';
-  
-  // Build the query - note we're not including time_from and time_to in SELECT
-  // as they're aggregated with the time_diff_minutes function
-  const query = `
-    SELECT 
-      ${groupByColumns.join(', ')},
-      AVG(time_diff_minutes(time_from, time_to)) AS avg_minutes,
-      SUM(time_diff_minutes(time_from, time_to)) AS total_minutes,
-      COUNT(DISTINCT person_id) AS activity_count
-    FROM ${tableName}
-    ${whereClause}
-    ${groupByClause}
-    ORDER BY ${groupByColumns.join(', ')}
-  `;
-  
-  console.log(`Executing time spent query on full dataset: ${query}`);
+
+  let query;
+
+  if (useWeightedAverage) {
+    // Weighted calculation using nsc_person for weighting
+    query = `
+      SELECT 
+        ${groupByColumns.join(', ')},
+        SUM(time_diff_minutes(time_from, time_to) * nsc_person) / SUM(nsc_person) AS avg_minutes,
+        SUM(time_diff_minutes(time_from, time_to) * nsc_person) AS total_minutes,
+        COUNT(DISTINCT person_id) AS activity_count,
+        SUM(nsc_person) AS total_weight
+      FROM ${tableName}
+      ${whereClause}
+      ${groupByClause}
+      ORDER BY ${groupByColumns.join(', ')}
+    `;
+  } else {
+    // Standard unweighted calculation
+    query = `
+      SELECT 
+        ${groupByColumns.join(', ')},
+        AVG(time_diff_minutes(time_from, time_to)) AS avg_minutes,
+        SUM(time_diff_minutes(time_from, time_to)) AS total_minutes,
+        COUNT(DISTINCT person_id) AS activity_count
+      FROM ${tableName}
+      ${whereClause}
+      ${groupByClause}
+      ORDER BY ${groupByColumns.join(', ')}
+    `;
+  }
+
+  console.log(`Executing time spent query on full dataset (weighted: ${useWeightedAverage}): ${query}`);
   return executeQuery(query);
+}
+
+/**
+ * Register time calculation function in DuckDB
+ * This should be called during DB initialization
+ */
+async function registerTimeFunctions(db: any): Promise<void> {
+  const conn = await db.connect();
+  try {
+    // Create a SQL function for time difference calculation
+    await conn.query(`
+      CREATE OR REPLACE FUNCTION time_diff_minutes(time_from, time_to) AS
+      CASE 
+        WHEN time_from IS NULL OR time_to IS NULL THEN NULL
+        WHEN time_to >= time_from THEN
+          (EXTRACT(HOUR FROM CAST(time_to AS TIME)) * 60 + EXTRACT(MINUTE FROM CAST(time_to AS TIME))) - 
+          (EXTRACT(HOUR FROM CAST(time_from AS TIME)) * 60 + EXTRACT(MINUTE FROM CAST(time_from AS TIME)))
+        ELSE
+          -- For activities spanning midnight, add 24 hours (1440 minutes)
+          1440 + (EXTRACT(HOUR FROM CAST(time_to AS TIME)) * 60 + EXTRACT(MINUTE FROM CAST(time_to AS TIME))) - 
+          (EXTRACT(HOUR FROM CAST(time_from AS TIME)) * 60 + EXTRACT(MINUTE FROM CAST(time_from AS TIME)))
+      END
+    `);
+
+    // Test the function to verify it works
+    const result = await conn.query(`SELECT time_diff_minutes('09:00', '10:00') AS test_result`);
+    const test_value = result.getChildAt(0)?.toArray()[0];
+    console.log(`time_diff_minutes function registered and tested: 09:00 to 10:00 = ${test_value} minutes`);
+  } catch (error) {
+    console.error("Error registering time functions:", error);
+    throw error; // Rethrow so calling code can handle it
+  } finally {
+    await conn.close();
+  }
 }
 
 // Handle the special time virtual column
 function handleTimeFilter(
-  filter: {column: string, operator: string, value: string, enabled: boolean, precision?: string}, 
+  filter: { column: string, operator: string, value: string, enabled: boolean, precision?: string },
   whereConditions: string[]
 ): void {
   // Default to 'overlap' precision if not specified
   const precision = filter.precision || 'overlap';
-  
+
   // Helper function to format time strings with leading zeros
   function formatTimeWithLeadingZeros(timeStr: string): string {
     const trimmed = timeStr.trim();
@@ -446,7 +499,7 @@ function handleTimeFilter(
     }
     return trimmed;
   }
-  
+
   switch (filter.operator) {
     case 'BETWEEN':
       // Split the value properly
@@ -459,7 +512,7 @@ function handleTimeFilter(
         endTime = startTime;
         console.warn('Time BETWEEN filter missing comma separator:', filter.value);
       }
-      
+
       if (startTime && endTime) {
         switch (precision) {
           case 'overlap':
@@ -510,20 +563,20 @@ async function executeDirectParquetQuery(query: string): Promise<any> {
   if (!browser) {
     throw new Error("DuckDB queries can only be executed in browser environment");
   }
-  
+
   // Make sure DB is initialized
   const db = await dbCore.initDuckDB();
-  
+
   console.log(`Executing direct parquet query: ${query}`);
   const conn = await db.connect();
-  
+
   try {
     // Replace table references with direct parquet_scan
     const modifiedQuery = query.replace(
-      /FROM\s+india_timeuse_survey/gi, 
+      /FROM\s+india_timeuse_survey/gi,
       `FROM parquet_scan('india_timeuse_survey.parquet')`
     );
-    
+
     console.log(`Modified query: ${modifiedQuery}`);
     return await conn.query(modifiedQuery);
   } catch (error) {
@@ -541,5 +594,6 @@ export const queryExecutor = {
   getPreview,
   executeSummaryQuery,
   calculateTimeSpentByDemographic,
-  executeDirectParquetQuery
+  executeDirectParquetQuery,
+  registerTimeFunctions
 }; 
