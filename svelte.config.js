@@ -4,11 +4,11 @@ import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 
 const config = {
 	preprocess: [
-		vitePreprocess(), 
+		vitePreprocess(),
 		mdsvex({
 			extensions: ['.md', '.svx'],
 			layout: {
-				AboutLayout: './src/lib/components/mdsvex/AboutLayout.svelte'
+				AboutLayout: 'src/lib/components/mdsvex/AboutLayout.svelte'
 			}
 		})
 	],
