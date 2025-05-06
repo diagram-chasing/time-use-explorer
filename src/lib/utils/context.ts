@@ -21,7 +21,8 @@ import {
   downloadSummaryCSV,
   downloadTimeAnalysisCSV,
   downloadFullDataWithDuckDB,
-  exportLargeDatasetInChunks
+  exportLargeDatasetInChunks,
+  downloadFullRawDataCSV
 } from './csvUtils';
 import { sortTimeResults } from './dataUtils';
 import { initDuckDB, executeQuery } from '../duckdb/service';
@@ -451,23 +452,35 @@ export function createAppContext() {
         }
       }
 
-      // For smaller datasets, try fallback approach - just export current page
-      loading.set(false);
+      // For smaller datasets (<250k), use the full data download function
+      try {
+        // Use downloadFullRawDataCSV for full dataset export
+        await downloadFullRawDataCSV(
+          selectedColumnsValue,
+          filtersValue,
+          runQuery
+        );
+        loading.set(false);
+      } catch (downloadError) {
+        console.error('Full dataset download also failed:', downloadError);
+        loading.set(false);
 
-      // Show warning notification about limited data
-      const resultsValue = get(results);
-      const currentPageValue = get(currentPage);
-      const pageSizeValue = get(pageSize);
+        // As a last resort, fallback to exporting just the current page
+        const resultsValue = get(results);
+        const currentPageValue = get(currentPage);
+        const pageSizeValue = get(pageSize);
 
-      notifications.info(
-        `Exporting only page ${currentPageValue} (${resultsValue.length} rows out of ${resultCountValue}) due to browser limitations`
-      );
+        notifications.warning(
+          `Exporting only page ${currentPageValue} (${resultsValue.length} rows out of ${resultCountValue}) due to browser memory limitations. ` +
+          `Try applying more filters to reduce the dataset size.`
+        );
 
-      // Use the regular CSV export for current page
-      downloadRawDataCSV(resultsValue, selectedColumnsValue);
+        // Use the regular CSV export for current page
+        downloadRawDataCSV(resultsValue, selectedColumnsValue);
 
-      // Use notifications API
-      notifications.dataExported('Current page of raw data');
+        // Use notifications API
+        notifications.dataExported('Current page of raw data (fallback)');
+      }
     }
   }
 
