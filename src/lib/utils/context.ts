@@ -118,7 +118,7 @@ type AppContextType = {
   sortColumn: Writable<string>;
   sortDirection: Writable<'asc' | 'desc'>;
   columnTypesMap: Writable<Record<string, string>>;
-  useWeightedAverage: Writable<boolean>;
+  useWeights: Writable<boolean>;
 
   // Functions
   setViewMode: (mode: ViewMode) => void;
@@ -174,7 +174,7 @@ export function createAppContext() {
   const activityColumn = writable(defaultActivityColumn);
   const sortColumn = writable('');
   const sortDirection = writable<'asc' | 'desc'>('desc');
-  const useWeightedAverage = writable(false);
+  const useWeights = writable(false);
 
   // Column types map
   const columnTypesMap = writable(createColumnTypesMap(allColumns));
@@ -313,7 +313,7 @@ export function createAppContext() {
       const activityColumnValue = get(activityColumn);
       const filtersValue = get(filters);
       const columnTypesMapValue = get(columnTypesMap);
-      const useWeightedAverageValue = get(useWeightedAverage);
+      const useWeightsValue = get(useWeights);
 
       if (demographicColumnsValue.length === 0) {
         const errorMsg = 'Please select at least one demographic column to group by';
@@ -327,7 +327,7 @@ export function createAppContext() {
         activityColumnValue,
         filtersValue,
         columnTypesMapValue,
-        useWeightedAverageValue
+        useWeightsValue
       );
 
       timeAnalysisResults.set(timeAnalysisResultsValue);
@@ -679,7 +679,7 @@ export function createAppContext() {
     sortColumn,
     sortDirection,
     columnTypesMap,
-    useWeightedAverage,
+    useWeights,
 
     // Functions
     setViewMode,
