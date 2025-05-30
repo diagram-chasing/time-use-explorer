@@ -281,7 +281,7 @@ async function executeSummaryQuery(
  * @param activityColumn Activity column for grouping
  * @param filters List of filter conditions
  * @param columnTypes Map of column types for value formatting
- * @param useWeightedAverage Whether to use weighted average based on nsc_person
+ * @param useWeights Whether to use weights based on mult
  * @returns Raw DuckDB query result
  */
 async function calculateTimeSpentByDemographic(
@@ -289,7 +289,7 @@ async function calculateTimeSpentByDemographic(
   activityColumn: string = 'activity_code',
   filters: Array<{ column: string, operator: string, value: string, enabled: boolean, precision?: string }>,
   columnTypes: Record<string, string>,
-  useWeightedAverage: boolean = false
+  useWeights: boolean = false
 ): Promise<any> {
   if (demographicColumns.length === 0) {
     throw new Error('At least one demographic column must be specified');
@@ -415,15 +415,14 @@ async function calculateTimeSpentByDemographic(
 
   let query;
 
-  if (useWeightedAverage) {
-    // Weighted calculation using nsc_person for weighting
+  if (useWeights) {
+    // Weighted calculation using mult for weighting
     query = `
       SELECT 
         ${groupByColumns.join(', ')},
-        SUM(time_diff_minutes(time_from, time_to) * nsc_person) / SUM(nsc_person) AS avg_minutes,
-        SUM(time_diff_minutes(time_from, time_to) * nsc_person) AS total_minutes,
-        COUNT(DISTINCT person_id) AS activity_count,
-        SUM(nsc_person) AS total_weight
+        SUM(time_diff_minutes(time_from, time_to) * (mult/100)) / SUM(mult/100) AS avg_minutes,
+        SUM(time_diff_minutes(time_from, time_to) * (mult/100)) AS total_minutes,
+        COUNT(DISTINCT person_id) AS activity_count
       FROM ${tableName}
       ${whereClause}
       ${groupByClause}
@@ -444,7 +443,7 @@ async function calculateTimeSpentByDemographic(
     `;
   }
 
-  console.log(`Executing time spent query on full dataset (weighted: ${useWeightedAverage}): ${query}`);
+  console.log(`Executing time spent query on full dataset (weighted: ${useWeights}): ${query}`);
   return executeQuery(query);
 }
 

@@ -834,7 +834,7 @@ export async function runTimeAnalysis(
   activityColumn: string,
   filters: Filter[],
   columnTypesMap: Record<string, string>,
-  useWeightedAverage: boolean = false
+  useWeights: boolean = false
 ): Promise<any[]> {
   // Create a cache key from the query parameters
   const cacheParams = {
@@ -842,7 +842,7 @@ export async function runTimeAnalysis(
     demographicColumns,
     activityColumn,
     filters: filters.filter(f => f.enabled), // Only include enabled filters
-    useWeightedAverage // Include in cache key so weighted/unweighted are cached separately
+    useWeights // Include in cache key so weighted/unweighted are cached separately
   };
 
   const cacheKey = generateQueryCacheKey(cacheParams);
@@ -862,7 +862,7 @@ export async function runTimeAnalysis(
     activityColumn,
     filters,
     columnTypesMap,
-    useWeightedAverage
+    useWeights
   );
 
   // Convert Apache Arrow result to plain objects

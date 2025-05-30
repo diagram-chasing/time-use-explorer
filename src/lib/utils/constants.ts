@@ -29,7 +29,7 @@ export const allColumns = [
   { id: 'time_from', label: 'Time From', type: 'string' },
   { id: 'time_to', label: 'Time To', type: 'string' },
   { id: 'sector', label: 'Sector', type: 'string' },
-  { id: 'mult_person', label: 'Multiplier', type: 'number' }
+  { id: 'mult', label: 'Multiplier', type: 'number' }
 ];
 
 // Special columns for summary view
