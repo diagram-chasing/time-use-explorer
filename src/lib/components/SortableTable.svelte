@@ -104,6 +104,7 @@
           if (strValue.includes('K')) num *= 1000;
           else if (strValue.includes('L')) num *= 100000;
           else if (strValue.includes('M')) num *= 1000000;
+          else if (strValue.includes('B')) num *= 1000000000;
           
           return num;
         }
