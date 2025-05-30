@@ -384,7 +384,7 @@ export function createAppContext() {
       exportConfirmDialog.set({
         visible: true,
         title: 'Large Dataset Export',
-        message: `You are about to export ${resultCountValue.toLocaleString()} rows, which might take some time and use significant memory. Do you want to continue?`,
+        message: `You are about to export ${resultCountValue.toLocaleString()} rows, which might take some time and use significant memory. We also provide the <a href="https://github.com/Vonter/india-timeuse-survey/releases/latest/download/timeuse.csv.gz" target="_blank" rel="noopener noreferrer">full dataset as a compressed CSV file here</a> that you can use instead. Do you want to continue?`,
         type: 'warning',
         onConfirm: async () => {
           await executeExport(selectedColumnsValue, filtersValue, resultCountValue);
@@ -448,7 +448,8 @@ export function createAppContext() {
         } catch (chunkError) {
           console.error('Chunked export also failed:', chunkError);
           notifications.error(
-            `This dataset (${resultCountValue.toLocaleString()} rows) is too large to export in the browser. ` +
+            `This dataset(${resultCountValue.toLocaleString()
+            } rows) is too large to export in the browser. ` +
             `Please try applying more filters to reduce the size.`
           );
           loading.set(false);
@@ -594,9 +595,9 @@ export function createAppContext() {
     } catch (err) {
       console.error('Error initializing DuckDB:', err);
       const errorMessage = err instanceof Error ? err.message : String(err);
-      error.set(`Error initializing DuckDB: ${errorMessage}`);
+      error.set(`Error initializing DuckDB: ${errorMessage} `);
       dbReady.set(false);
-      notifications.error(`Error initializing database: ${errorMessage}`);
+      notifications.error(`Error initializing database: ${errorMessage} `);
 
       // Clear localStorage flags if there was an error
       if (browser) {
@@ -647,8 +648,8 @@ export function createAppContext() {
     } catch (err) {
       console.error('Error retrying with smaller sample:', err);
       const errorMessage = err instanceof Error ? err.message : String(err);
-      error.set(`Error retrying: ${errorMessage}`);
-      notifications.error(`Error retrying with smaller sample: ${errorMessage}`);
+      error.set(`Error retrying: ${errorMessage} `);
+      notifications.error(`Error retrying with smaller sample: ${errorMessage} `);
     } finally {
       loading.set(false);
     }

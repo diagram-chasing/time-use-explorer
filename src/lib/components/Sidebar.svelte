@@ -271,7 +271,7 @@
 						<div class="max-h-48 overflow-y-auto pr-1">
 							<div class="grid grid-cols-2 gap-x-2">
 								{#each allColumns as column}
-									{#if column.id !== 'person_id' && !column.hidden}
+									{#if !column.hidden}
 										<div class="mb-0.5 flex items-center">
 											<input
 												type="checkbox"
@@ -448,7 +448,7 @@
 					<div class="max-h-48 overflow-y-auto pr-1">
 						<div class="grid grid-cols-2 gap-x-2">
 							{#each allColumns as column}
-								{#if column.id !== 'person_id' && !column.hidden}
+								{#if !column.hidden}
 									<div class="mb-0.5 flex items-center">
 										<input
 											type="checkbox"

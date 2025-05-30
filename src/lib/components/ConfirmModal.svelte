@@ -58,7 +58,7 @@
 	// Get the icon and colors based on the modal type
 	$: typeIcon = type === 'error' ? AlertOctagon : type === 'warning' ? AlertCircle : Check;
 
-	$: typeColor = type === 'error' ? 'text-red' : type === 'warning' ? 'text-yellow' : 'text-blue';
+	$: typeColor = type === 'error' ? 'text-red' : type === 'warning' ? 'text-red' : 'text-blue';
 
 	$: typeColorBg =
 		type === 'error' ? 'border-red' : type === 'warning' ? 'border-yellow' : 'border-blue';
@@ -80,7 +80,7 @@
 		>
 			<!-- Modal header -->
 			<div class="border-neutral bg-base-200 flex items-center justify-between border-b p-3">
-				<h3 class="text-neutral flex items-center gap-2 text-xs font-bold uppercase">
+				<h3 class="{typeColor} flex items-center gap-2 text-xs font-bold uppercase">
 					<svelte:component this={typeIcon} class="h-3 w-3 {typeColor}" />
 					{title}
 				</h3>
@@ -94,10 +94,10 @@
 			</div>
 
 			<!-- Modal content -->
-			<div class="p-4">
-				<p class="text-xs" style="font-family: var(--font-ui);">
-					{message}
-				</p>
+			<div class="modal p-4">
+				<div class="text-xs" style="font-family: var(--font-ui);">
+					{@html message}
+				</div>
 			</div>
 
 			<!-- Modal footer -->
@@ -120,3 +120,12 @@
 		</div>
 	</div>
 {/if}
+
+<style>
+	:global {
+		.modal a {
+			color: var(--color-blue);
+			text-decoration: underline;
+		}
+	}
+</style>

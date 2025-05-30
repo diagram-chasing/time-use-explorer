@@ -11,6 +11,7 @@ export type ViewMode = typeof VIEW_MODES[keyof typeof VIEW_MODES];
 
 // Column definitions
 export const allColumns = [
+  { id: 'person_id', label: 'Person ID', type: 'string' },
   { id: 'state', label: 'State', type: 'string' },
   { id: 'district', label: 'District', type: 'string' },
   { id: 'gender', label: 'Gender', type: 'string' },
@@ -26,7 +27,9 @@ export const allColumns = [
   { id: 'industry', label: 'Industry', type: 'string' },
   { id: 'time', label: 'Time', type: 'time_range', hidden: true },
   { id: 'time_from', label: 'Time From', type: 'string' },
-  { id: 'time_to', label: 'Time To', type: 'string' }
+  { id: 'time_to', label: 'Time To', type: 'string' },
+  { id: 'sector', label: 'Sector', type: 'string' },
+  { id: 'mult_person', label: 'Multiplier', type: 'number' }
 ];
 
 // Special columns for summary view
